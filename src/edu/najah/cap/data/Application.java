@@ -1,8 +1,11 @@
 package edu.najah.cap.data;
-
+import com.mongodb.MongoException;
 import edu.najah.cap.activity.IUserActivityService;
 import edu.najah.cap.activity.UserActivity;
 import edu.najah.cap.activity.UserActivityService;
+import edu.najah.cap.data.mongodb.DataInserter;
+import edu.najah.cap.data.mongodb.MongoConnection;
+import edu.najah.cap.data.mongodb.MongoDataInserter;
 import edu.najah.cap.exceptions.Util;
 import edu.najah.cap.iam.IUserService;
 import edu.najah.cap.iam.UserProfile;
@@ -14,10 +17,11 @@ import edu.najah.cap.payment.Transaction;
 import edu.najah.cap.posts.IPostService;
 import edu.najah.cap.posts.Post;
 import edu.najah.cap.posts.PostService;
-
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.time.Instant;
+import java.util.Properties;
 import java.util.Scanner;
-import java.util.concurrent.ExecutorService;
 
 public class Application {
 
@@ -25,10 +29,10 @@ public class Application {
     private static final IPayment paymentService = new PaymentService();
     private static final IUserService userService = new UserService();
     private static final IPostService postService = new PostService();
-
     private static String loginUserName;
 
     public static void main(String[] args) {
+
         generateRandomData();
         Instant start = Instant.now();
         System.out.println("Application Started: " + start);
@@ -39,15 +43,29 @@ public class Application {
         setLoginUserName(userName);
         //TODO Your application starts here. Do not Change the existing code
 
+        Properties properties = new Properties();
+        try (FileInputStream input = new FileInputStream("src/resources/application.properties")) {
+            properties.load(input);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        String connectionString = properties.getProperty("mongo.connection.string");
+        MongoConnection mongoConnection = MongoConnection.getInstance(connectionString, "UserData");
+        try {
+            MongoDataInserter mongoDataInserter = new MongoDataInserter(mongoConnection.getDatabase());
+            DataInserter dataInserter = new DataInserter(mongoDataInserter);
+            dataInserter.insertData(userActivityService, paymentService, userService, postService);
+        } catch (MongoException e) {
+            e.printStackTrace();
+        }
 
 
-
-
+        mongoConnection.closeMongoClient();
         //TODO Your application ends here. Do not Change the existing code
         Instant end = Instant.now();
         System.out.println("Application Ended: " + end);
-    }
 
+    }
 
     private static void generateRandomData() {
         Util.setSkipValidation(true);
@@ -82,7 +100,7 @@ public class Application {
                     paymentService.pay(new Transaction("user" + i, i * j, "description" + i + "." + j));
                 }
             } catch (Exception e) {
-                System.err.println("Error while generating post for user" + i);
+                System.err.println("Error while generating payment for user" + i);
             }
         }
     }
@@ -94,6 +112,7 @@ public class Application {
     }
 
     private static void generateUser(int i) {
+
         UserProfile user = new UserProfile();
         user.setUserName("user" + i);
         user.setFirstName("first" + i);
