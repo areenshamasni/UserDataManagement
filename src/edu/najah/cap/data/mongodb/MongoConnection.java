@@ -4,20 +4,23 @@ import com.mongodb.MongoException;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MongoConnection {
     private static MongoConnection instance;
 
     private final MongoClient mongoClient;
     private final MongoDatabase database;
+    private static final Logger logger = LoggerFactory.getLogger(MongoConnection.class);
 
     private MongoConnection(String connectionString, String databaseName) throws MongoException {
         try {
             this.mongoClient = MongoClients.create(connectionString);
             this.database = mongoClient.getDatabase(databaseName);
-            System.out.println("Connected to " + databaseName);
+            logger.info("Connected to {}" , databaseName);
         } catch (MongoException e) {
-            System.err.println("Error connecting to MongoDB: " + e.getMessage());
+            logger.error("Failed to connect to {}", databaseName);
             throw e;
         }
     }
@@ -37,7 +40,7 @@ public class MongoConnection {
             try {
                 mongoClient.close();
             } catch (MongoException e) {
-                System.err.println("Error closing MongoDB client: " + e.getMessage());
+                logger.error("Failed to close MongoDB client: {}", e.getMessage());
             }
         }
     }

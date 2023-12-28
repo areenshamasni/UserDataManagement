@@ -1,4 +1,5 @@
 package edu.najah.cap.data;
+
 import com.mongodb.MongoException;
 import edu.najah.cap.activity.IUserActivityService;
 import edu.najah.cap.activity.UserActivity;
@@ -17,11 +18,14 @@ import edu.najah.cap.payment.Transaction;
 import edu.najah.cap.posts.IPostService;
 import edu.najah.cap.posts.Post;
 import edu.najah.cap.posts.PostService;
+
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.Properties;
 import java.util.Scanner;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Application {
 
@@ -43,12 +47,14 @@ public class Application {
         setLoginUserName(userName);
         //TODO Your application starts here. Do not Change the existing code
 
+        Logger logger = LoggerFactory.getLogger(Application.class);
         Properties properties = new Properties();
         try (FileInputStream input = new FileInputStream("src/resources/application.properties")) {
             properties.load(input);
         } catch (IOException e) {
-            e.printStackTrace();
+          logger.error("Error loading application properties file", e);
         }
+
         String connectionString = properties.getProperty("mongo.connection.string");
         MongoConnection mongoConnection = MongoConnection.getInstance(connectionString, "UserData");
         try {
@@ -56,7 +62,7 @@ public class Application {
             DataInserter dataInserter = new DataInserter(mongoDataInserter);
             dataInserter.insertData(userActivityService, paymentService, userService, postService);
         } catch (MongoException e) {
-            e.printStackTrace();
+         logger.error("error inserting data ", e);
         }
 
 
