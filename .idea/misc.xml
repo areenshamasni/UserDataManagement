@@ -12,8 +12,4 @@
   <component name="ProjectType">
     <option name="id" value="jpab" />
   </component>
-  <component name="ScalaSbtSettings">
-    <option name="customLauncherPath" />
-    <option name="customVMPath" />
-  </component>
 </project>

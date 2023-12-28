@@ -23,29 +23,55 @@ public class DataInserter {
     }
 
     public void insertData(IUserActivityService userActivityService, IPayment paymentService,
-                           IUserService userService, IPostService postService) throws SystemBusyException, BadRequestException, NotFoundException {
-        for (int i = 0; i < 100; i++) {
-            String userId = "user" + i;
+                           IUserService userService, IPostService postService) {
+        String userId = null;
+        try {
+            for (int i = 0; i < 100; i++) {
+                userId = "user" + i;
+                Util.setSkipValidation(true);
+                List<UserActivity> userActivities = userActivityService.getUserActivity(userId);
+                if (userActivities != null){
+                    for (UserActivity userActivity : userActivities) {
+                        try {
+                            mongoDataInserter.insertDocument("activities", userActivity, this::mapUserActivityToDocument);
+                        } catch (Exception e) {
+                            logger.error("Error inserting user activity document for userId: " + userId, e);
+                        }
+                    }}
 
-            List<UserActivity> userActivities = userActivityService.getUserActivity(userId);
-            for (UserActivity userActivity : userActivities) {
-                mongoDataInserter.insertDocument("activities", userActivity, this::mapUserActivityToDocument);
-            }
-
-            List<Transaction> transactions = paymentService.getTransactions(userId);
-            if (transactions != null) {
-                for (Transaction transaction : transactions) {
-                    mongoDataInserter.insertDocument("payments", transaction, this::mapTransactionToDocument);
+                List<Transaction> transactions = paymentService.getTransactions(userId);
+                if (transactions != null) {
+                    for (Transaction transaction : transactions) {
+                        try {
+                            mongoDataInserter.insertDocument("payments", transaction, this::mapTransactionToDocument);
+                        } catch (Exception e) {
+                            logger.error("Error inserting payment document for userId: " + userId, e);
+                        }
+                    }
                 }
-            }
 
-            UserProfile userProfile = userService.getUser(userId);
-            mongoDataInserter.insertDocument("users", userProfile, this::mapUserProfileToDocument);
+                UserProfile userProfile = userService.getUser(userId);
+                if (userProfile != null) {
+                    try {
+                        mongoDataInserter.insertDocument("users", userProfile, this::mapUserProfileToDocument);
+                    } catch (Exception e) {
+                        logger.error("Error inserting user profile document for userId: " + userId, e);
+                    }}
 
-            List<Post> posts = postService.getPosts(userId);
-            for (Post post : posts) {
-                mongoDataInserter.insertDocument("posts", post, this::mapPostToDocument);
+                List<Post> posts = postService.getPosts(userId);
+                if (posts != null) {
+                    for (Post post : posts) {
+                        try {
+                            mongoDataInserter.insertDocument("posts", post, this::mapPostToDocument);
+                        } catch (Exception e) {
+                            logger.error("Error inserting post document for userId: " + userId, e);
+                        }
+                    }}
             }
+        } catch (SystemBusyException | BadRequestException | NotFoundException e) {
+            logger.error("Error in insertData method", e);
+        } finally {
+            Util.setSkipValidation(false);
         }
     }
 
