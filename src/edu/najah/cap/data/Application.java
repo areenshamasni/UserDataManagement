@@ -1,4 +1,5 @@
 package edu.najah.cap.data;
+
 import com.mongodb.MongoException;
 import edu.najah.cap.activity.IUserActivityService;
 import edu.najah.cap.activity.UserActivity;
@@ -20,6 +21,10 @@ import edu.najah.cap.payment.Transaction;
 import edu.najah.cap.posts.IPostService;
 import edu.najah.cap.posts.Post;
 import edu.najah.cap.posts.PostService;
+import org.bson.Document;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.time.Instant;
@@ -36,7 +41,7 @@ public class Application {
 
     public static void main(String[] args) {
 
-       generateRandomData();
+        //generateRandomData();
         Instant start = Instant.now();
         System.out.println("Application Started: " + start);
         Scanner scanner = new Scanner(System.in);
@@ -45,72 +50,97 @@ public class Application {
         String userName = scanner.nextLine();
         setLoginUserName(userName);
         //TODO Your application starts here. Do not Change the existing code
-
+        Logger logger = LoggerFactory.getLogger(Application.class);
         Properties properties = new Properties();
         try (FileInputStream input = new FileInputStream("src/resources/application.properties")) {
             properties.load(input);
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.info("Error loading properties");
         }
         String connectionString = properties.getProperty("mongo.connection.string");
         MongoConnection mongoConnection = MongoConnection.getInstance(connectionString, "UserData");
 
         try {
-           MongoDataInserter mongoDataInserter = new MongoDataInserter(mongoConnection.getDatabase());
+            MongoDataInserter mongoDataInserter = new MongoDataInserter(mongoConnection.getDatabase());
             DataInserter dataInserter = new DataInserter(mongoDataInserter);
-            dataInserter.insertData(userActivityService, paymentService, userService, postService);
+            //dataInserter.insertData(userActivityService, paymentService, userService, postService);
         } catch (MongoException e) {
-            e.printStackTrace();
+            logger.error(e.getMessage(), e);
         }
 
-        int choice;
-        do {
-            System.out.println("-------------------------------------------------------------------------");
-            System.out.println("Hi, " + userName + ", whats your request?");
-            System.out.println("1: Export data & download it directly");
-            System.out.println("2: Export data & upload to file storage");
-            System.out.println("3: Delete request");
-            System.out.println("0: Exit");
-            System.out.print("Your choice: ");
-            choice = scanner.nextInt();
+        Document query = new Document("userId", userName);
+        boolean userExists = mongoConnection.getDatabase().getCollection("users").find(query).limit(1).iterator().hasNext();
 
-            switch (choice) {
-                case 1:
-                    //Exporting data and downloading
-                    break;
-                case 2:
-                   //Exporting data and uploading to file storage...");
-                    break;
-                case 3:
-                    System.out.println("Choose delete type (hard/soft): ");
-                    scanner.nextLine();
+        if (userExists) {
+            boolean validInput = false;
+            int choice = 0;
 
-                    String deleteChoice = scanner.nextLine().trim().toUpperCase();
+            try {
+                do {
+                    System.out.println("--------------------------------------------------------------------------------");
+                    System.out.println("Hi, " + userName + ", what's your request?");
+                    System.out.println("1: Export data & download it directly");
+                    System.out.println("2: Export data & upload to file storage");
+                    System.out.println("3: Delete request");
+                    System.out.println("4: Exit");
+                    System.out.print("Your choice: ");
 
                     try {
-                        DeleteType deleteType = DeleteType.valueOf(deleteChoice);
-                        IDeleteService deleteService = DeleteFactory.createInstance(deleteType, connectionString, "UserData");
-
-                        long startTime = System.currentTimeMillis();
-                        deleteService.deleteUserData(userName);
-                        System.out.println(deleteChoice + " delete operation completed for user: " + userName);
-                        long endTime = System.currentTimeMillis();
-                        long elapsedTime = endTime - startTime;
-                        System.out.println("Deleting data process took " + elapsedTime + " milliseconds.");
-                    } catch (IllegalArgumentException e) {
-                        System.out.println("Invalid delete type. Please choose 'hard' or 'soft'.");
+                        choice = scanner.nextInt();
+                        validInput = true;
+                    } catch (java.util.InputMismatchException e) {
+                        scanner.nextLine();
+                        logger.warn("Invalid input. Please enter a valid integer.");
                     }
-                    break;
-                case 0:
-                    System.out.println("Goodbye!");
-                    break;
-                default:
-                    System.out.println("Invalid choice. Please enter a valid option.");
-            }
-        } while (choice != 0);
 
+                    if (validInput) {
+                        switch (choice) {
+                            case 1:
+                                // Exporting data and downloading
+                                break;
+                            case 2:
+                                // Exporting data and uploading to file storage
+                                break;
+                            case 3:
+                                System.out.println("Choose delete type (hard/soft): ");
+                                scanner.nextLine();
+
+                                String deleteChoice = scanner.nextLine().trim().toUpperCase();
+
+                                try {
+                                    DeleteType deleteType = DeleteType.valueOf(deleteChoice);
+                                    IDeleteService deleteService = DeleteFactory.createInstance(deleteType, connectionString, "UserData");
+
+                                    long startTime = System.currentTimeMillis();
+                                    deleteService.deleteUserData(userName);
+                                    System.out.println(deleteChoice + " delete operation completed for user: " + userName);
+                                    if (DeleteType.HARD.equals(deleteType)) {
+                                        userExists = false;
+                                    }
+                                    long endTime = System.currentTimeMillis();
+                                    long elapsedTime = endTime - startTime;
+                                    System.out.println("Deleting data process took " + elapsedTime + " milliseconds.");
+                                } catch (IllegalArgumentException e) {
+                                    logger.error("Invalid delete type. Please choose 'hard' or 'soft'.");
+                                }
+                                break;
+                            case 4:
+                                System.out.println("Goodbye!");
+                                break;
+                            default:
+                                logger.warn("Invalid choice. Please enter a valid option.");
+                        }
+                    }
+                } while (userExists && (!validInput || choice != 4));
+            } catch (Exception e) {
+                logger.error(e.getMessage(), e);
+            }
+        } else {
+            logger.warn("You are not an existing user in our system.");
+        }
 
         mongoConnection.closeMongoClient();
+
         //TODO Your application ends here. Do not Change the existing code
         Instant end = Instant.now();
         System.out.println("Application Ended: " + end);
@@ -133,7 +163,7 @@ public class Application {
     private static void generateActivity(int i) {
         for (int j = 0; j < 100; j++) {
             try {
-                if(UserType.NEW_USER.equals(userService.getUser("user" + i).getUserType())) {
+                if (UserType.NEW_USER.equals(userService.getUser("user" + i).getUserType())) {
                     continue;
                 }
             } catch (Exception e) {
