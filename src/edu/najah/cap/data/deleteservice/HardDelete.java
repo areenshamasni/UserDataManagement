@@ -3,7 +3,6 @@ package edu.najah.cap.data.deleteservice;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.result.DeleteResult;
-import edu.najah.cap.data.exceptions.DeleteOperationException;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,7 +17,7 @@ public class HardDelete implements IDeleteService {
 
     @Override
     public void deleteUserData(String userName) {
-        try {
+
             logger.info("Performing hard delete for user: {}", userName);
 
             MongoCollection<Document> usersCollection = database.getCollection("users");
@@ -63,8 +62,6 @@ public class HardDelete implements IDeleteService {
 
 
             logger.info("Hard Delete for user: {} completed.", userName);
-        } catch (Exception e) {
-            throw new DeleteOperationException("Error during soft delete for user: " + userName, e);
-        }
+
     }
 }

@@ -109,7 +109,7 @@ public class Application {
 
                             try {
                                 DeleteType deleteType = DeleteType.valueOf(deleteChoice);
-                                IDeleteService deleteService = DeleteFactory.createInstance(deleteType, connectionString, "UserData");
+                                IDeleteService deleteService = DeleteFactory.createInstance(deleteType,mongoConnection.getDatabase());
 
                                 long startTime = System.currentTimeMillis();
                                 deleteService.deleteUserData(userName);
