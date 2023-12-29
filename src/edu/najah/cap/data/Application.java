@@ -3,6 +3,9 @@ import com.mongodb.MongoException;
 import edu.najah.cap.activity.IUserActivityService;
 import edu.najah.cap.activity.UserActivity;
 import edu.najah.cap.activity.UserActivityService;
+import edu.najah.cap.data.deleteservice.DeleteFactory;
+import edu.najah.cap.data.deleteservice.DeleteType;
+import edu.najah.cap.data.deleteservice.IDeleteService;
 import edu.najah.cap.data.mongodb.DataInserter;
 import edu.najah.cap.data.mongodb.MongoConnection;
 import edu.najah.cap.data.mongodb.MongoDataInserter;
@@ -33,7 +36,7 @@ public class Application {
 
     public static void main(String[] args) {
 
-        generateRandomData();
+       // generateRandomData();
         Instant start = Instant.now();
         System.out.println("Application Started: " + start);
         Scanner scanner = new Scanner(System.in);
@@ -44,22 +47,31 @@ public class Application {
         //TODO Your application starts here. Do not Change the existing code
 
         Properties properties = new Properties();
-        try (FileInputStream input = new FileInputStream("src/resources/application.properties")) {
+        try (FileInputStream input = new FileInputStream("src/resources/app.properties")) {
             properties.load(input);
         } catch (IOException e) {
             e.printStackTrace();
         }
         String connectionString = properties.getProperty("mongo.connection.string");
         MongoConnection mongoConnection = MongoConnection.getInstance(connectionString, "UserData");
-        try {
-            MongoDataInserter mongoDataInserter = new MongoDataInserter(mongoConnection.getDatabase());
+        /*try {
+           MongoDataInserter mongoDataInserter = new MongoDataInserter(mongoConnection.getDatabase());
             DataInserter dataInserter = new DataInserter(mongoDataInserter);
             dataInserter.insertData(userActivityService, paymentService, userService, postService);
         } catch (MongoException e) {
             e.printStackTrace();
-        }
+        }*/
+        System.out.println("Choose delete type (hard/soft): ");
+        String deleteChoice = scanner.nextLine().trim().toUpperCase();
+        DeleteType deleteType = DeleteType.valueOf(deleteChoice);
 
-
+        IDeleteService deleteService = DeleteFactory.createInstance(deleteType, connectionString, "UserData");
+        long startTime = System.currentTimeMillis();
+        deleteService.deleteUserData(userName);
+        System.out.println(deleteChoice + " delete operation completed for user: " + userName);
+        long endTime = System.currentTimeMillis();
+        long elapsedTime = endTime - startTime;
+        System.out.println("Deleting data process took " + elapsedTime + " milliseconds.");
         mongoConnection.closeMongoClient();
         //TODO Your application ends here. Do not Change the existing code
         Instant end = Instant.now();
