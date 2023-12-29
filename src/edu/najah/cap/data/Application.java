@@ -1,12 +1,28 @@
 package edu.najah.cap.data;
 
 import com.mongodb.MongoException;
+import com.mongodb.client.MongoDatabase;
 import edu.najah.cap.activity.IUserActivityService;
 import edu.najah.cap.activity.UserActivity;
 import edu.najah.cap.activity.UserActivityService;
 import edu.najah.cap.data.deleteservice.DeleteFactory;
 import edu.najah.cap.data.deleteservice.DeleteType;
 import edu.najah.cap.data.deleteservice.IDeleteService;
+import edu.najah.cap.data.exportservice.*;
+import edu.najah.cap.data.exportservice.converting.FileCompressor;
+import edu.najah.cap.data.exportservice.converting.PdfConverter;
+import edu.najah.cap.data.exportservice.converting.UserProfilePdfConverter;
+import edu.najah.cap.data.exportservice.converting.ZipFileCompressor;
+import edu.najah.cap.data.exportservice.exportprocess.PaymentExporter;
+import edu.najah.cap.data.exportservice.exportprocess.PremiumPaymentExporter;
+import edu.najah.cap.data.exportservice.exportprocess.UserProfileExporter;
+import edu.najah.cap.data.exportservice.exportprocess.userProfExporter;
+import edu.najah.cap.data.exportservice.todownload.localDownload;
+import edu.najah.cap.data.exportservice.todownload.localStorage;
+import edu.najah.cap.data.exportservice.toupload.DropboxUploader;
+import edu.najah.cap.data.exportservice.toupload.FileUploadStrategy;
+import edu.najah.cap.data.exportservice.toupload.GoogleDriveUploader;
+import edu.najah.cap.data.exportservice.toupload.fileStorageType;
 import edu.najah.cap.data.mongodb.DataInserter;
 import edu.najah.cap.data.mongodb.MongoConnection;
 import edu.najah.cap.data.mongodb.MongoDataInserter;
@@ -53,17 +69,26 @@ public class Application {
         //TODO Your application starts here. Do not Change the existing code
 
         Logger logger = LoggerFactory.getLogger(Application.class);
+
+        UserProfileExporter userProfileExporter = new userProfExporter();
+        PaymentExporter paymentExporter = new PremiumPaymentExporter();
+        PdfConverter pdfConverter = new UserProfilePdfConverter();
+        FileCompressor fileCompressor = new ZipFileCompressor();
+        localStorage localStorage = new localDownload();
+        FileUploadStrategy googleDriveUploader = new GoogleDriveUploader();
+        FileUploadStrategy dropboxUploader = new DropboxUploader();
+
         Properties properties = new Properties();
         try (FileInputStream input = new FileInputStream("src/resources/application.properties")) {
             properties.load(input);
         } catch (IOException e) {
-            logger.info("Error loading properties");
+            logger.info("Error loading properties {}", e.getMessage());
         }
         String connectionString = properties.getProperty("mongo.connection.string");
         MongoConnection mongoConnection = MongoConnection.getInstance(connectionString, "UserData");
-
+        MongoDatabase database = mongoConnection.getDatabase();
         try {
-            MongoDataInserter mongoDataInserter = new MongoDataInserter(mongoConnection.getDatabase());
+            MongoDataInserter mongoDataInserter = new MongoDataInserter(database);
             DataInserter dataInserter = new DataInserter(mongoDataInserter);
             dataInserter.insertData(userActivityService, paymentService, userService, postService);
         } catch (MongoException e) {
@@ -96,10 +121,28 @@ public class Application {
                 if (validInput) {
                     switch (choice) {
                         case 1:
-                            // Exporting data and downloading
+                            FileHandlingExportContext exportContextWithDownload = new FileHandlingExportContext(
+                                    userProfileExporter, paymentExporter, pdfConverter, fileCompressor, localStorage, googleDriveUploader);
+                            exportContextWithDownload.exportAndDownload(userName, database);
                             break;
                         case 2:
-                            // Exporting data and uploading to file storage
+                            System.out.println("Choose Google Drive or Dropbox to upload?(drive/dropbox): ");
+                            scanner.nextLine();
+                            String storageChoice = scanner.nextLine().trim().toUpperCase();
+                            try {
+                            fileStorageType storageType = fileStorageType.valueOf(storageChoice);
+                            if (fileStorageType.DRIVE.equals(storageType)) {
+                                FileHandlingExportContext exportContextWithGoogleDrive = new FileHandlingExportContext(
+                                        userProfileExporter, paymentExporter, pdfConverter, fileCompressor, localStorage, googleDriveUploader);
+                                exportContextWithGoogleDrive.exportAndUpload(userName, database);
+                            } else if (fileStorageType.DROPBOX.equals(storageType)) {
+                                FileHandlingExportContext exportContextWithDropbox = new FileHandlingExportContext(
+                                        userProfileExporter, paymentExporter, pdfConverter, fileCompressor, localStorage, dropboxUploader);
+                                exportContextWithDropbox.exportAndUpload(userName, database);
+                            }
+                            } catch (IllegalArgumentException e) {
+                                logger.error("Invalid File Storage type. Please choose 'drive' or 'dropbox'.");
+                            }
                             break;
                         case 3:
                             System.out.println("Choose delete type (hard/soft): ");
