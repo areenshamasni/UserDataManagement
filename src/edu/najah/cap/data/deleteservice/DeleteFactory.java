@@ -1,9 +1,13 @@
 package edu.najah.cap.data.deleteservice;
 
 import com.mongodb.client.MongoDatabase;
-import edu.najah.cap.data.mongodb.MongoConnection;
+
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class DeleteFactory {
+    private static final Logger logger = Logger.getLogger(DeleteFactory.class.getName());
+
     public static IDeleteService createInstance(DeleteType deleteType, MongoDatabase database) {
         switch (deleteType) {
             case HARD:
@@ -11,7 +15,9 @@ public class DeleteFactory {
             case SOFT:
                 return new SoftDelete(database);
             default:
-                throw new IllegalArgumentException("Invalid delete type");
+                logger.log(Level.WARNING, "Invalid delete type: {0}", deleteType);
         }
+        return null;
     }
+
 }
