@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.Properties;
 import java.util.Scanner;
 
@@ -41,7 +42,7 @@ public class Application {
 
     public static void main(String[] args) {
 
-        //generateRandomData();
+        generateRandomData();
         Instant start = Instant.now();
         System.out.println("Application Started: " + start);
         Scanner scanner = new Scanner(System.in);
@@ -50,6 +51,7 @@ public class Application {
         String userName = scanner.nextLine();
         setLoginUserName(userName);
         //TODO Your application starts here. Do not Change the existing code
+
         Logger logger = LoggerFactory.getLogger(Application.class);
         Properties properties = new Properties();
         try (FileInputStream input = new FileInputStream("src/resources/application.properties")) {
@@ -63,78 +65,73 @@ public class Application {
         try {
             MongoDataInserter mongoDataInserter = new MongoDataInserter(mongoConnection.getDatabase());
             DataInserter dataInserter = new DataInserter(mongoDataInserter);
-            //dataInserter.insertData(userActivityService, paymentService, userService, postService);
+            dataInserter.insertData(userActivityService, paymentService, userService, postService);
         } catch (MongoException e) {
             logger.error(e.getMessage(), e);
         }
 
         Document query = new Document("userId", userName);
         boolean userExists = mongoConnection.getDatabase().getCollection("users").find(query).limit(1).iterator().hasNext();
-
         if (userExists) {
-            boolean validInput = false;
+            boolean validInput;
             int choice = 0;
 
-            try {
-                do {
-                    System.out.println("--------------------------------------------------------------------------------");
-                    System.out.println("Hi, " + userName + ", what's your request?");
-                    System.out.println("1: Export data & download it directly");
-                    System.out.println("2: Export data & upload to file storage");
-                    System.out.println("3: Delete request");
-                    System.out.println("4: Exit");
-                    System.out.print("Your choice: ");
+            do {
+                System.out.println("--------------------------------------------------------------------------------");
+                System.out.println("Hi, " + userName + ", what's your request?");
+                for (String s : Arrays.asList("1: Export data & download it directly", "2: Export data & upload to file storage", "3: Delete request", "4: Exit")) {
+                    System.out.println(s);
+                }
+                System.out.print("Your choice: ");
 
-                    try {
-                        choice = scanner.nextInt();
-                        validInput = true;
-                    } catch (java.util.InputMismatchException e) {
-                        scanner.nextLine();
-                        logger.warn("Invalid input. Please enter a valid integer.");
-                    }
+                try {
+                    choice = scanner.nextInt();
+                    validInput = true;
+                } catch (java.util.InputMismatchException e) {
+                    scanner.nextLine();
+                    logger.warn("Invalid input. Please enter a valid integer.");
+                    validInput = false;
+                }
 
-                    if (validInput) {
-                        switch (choice) {
-                            case 1:
-                                // Exporting data and downloading
-                                break;
-                            case 2:
-                                // Exporting data and uploading to file storage
-                                break;
-                            case 3:
-                                System.out.println("Choose delete type (hard/soft): ");
-                                scanner.nextLine();
+                if (validInput) {
+                    switch (choice) {
+                        case 1:
+                            // Exporting data and downloading
+                            break;
+                        case 2:
+                            // Exporting data and uploading to file storage
+                            break;
+                        case 3:
+                            System.out.println("Choose delete type (hard/soft): ");
+                            scanner.nextLine();
 
-                                String deleteChoice = scanner.nextLine().trim().toUpperCase();
+                            String deleteChoice = scanner.nextLine().trim().toUpperCase();
 
-                                try {
-                                    DeleteType deleteType = DeleteType.valueOf(deleteChoice);
-                                    IDeleteService deleteService = DeleteFactory.createInstance(deleteType, connectionString, "UserData");
+                            try {
+                                DeleteType deleteType = DeleteType.valueOf(deleteChoice);
+                                IDeleteService deleteService = DeleteFactory.createInstance(deleteType, connectionString, "UserData");
 
-                                    long startTime = System.currentTimeMillis();
-                                    deleteService.deleteUserData(userName);
-                                    System.out.println(deleteChoice + " delete operation completed for user: " + userName);
-                                    if (DeleteType.HARD.equals(deleteType)) {
-                                        userExists = false;
-                                    }
-                                    long endTime = System.currentTimeMillis();
-                                    long elapsedTime = endTime - startTime;
-                                    System.out.println("Deleting data process took " + elapsedTime + " milliseconds.");
-                                } catch (IllegalArgumentException e) {
-                                    logger.error("Invalid delete type. Please choose 'hard' or 'soft'.");
+                                long startTime = System.currentTimeMillis();
+                                deleteService.deleteUserData(userName);
+                                System.out.println(deleteChoice + " delete operation completed for user: " + userName);
+                                if (DeleteType.HARD.equals(deleteType)) {
+                                    userExists = false;
                                 }
-                                break;
-                            case 4:
-                                System.out.println("Goodbye!");
-                                break;
-                            default:
-                                logger.warn("Invalid choice. Please enter a valid option.");
-                        }
+                                long endTime = System.currentTimeMillis();
+                                long elapsedTime = endTime - startTime;
+                                System.out.println("Deleting data process took " + elapsedTime + " milliseconds.");
+                            } catch (IllegalArgumentException e) {
+                                logger.error("Invalid delete type. Please choose 'hard' or 'soft'.");
+                            }
+                            break;
+                        case 4:
+                            System.out.println("Goodbye!");
+                            break;
+                        default:
+                            logger.warn("Invalid choice. Please enter a valid option.");
                     }
-                } while (userExists && (!validInput || choice != 4));
-            } catch (Exception e) {
-                logger.error(e.getMessage(), e);
-            }
+                }
+            } while (userExists && (!validInput || choice != 4));
         } else {
             logger.warn("You are not an existing user in our system.");
         }
