@@ -9,6 +9,7 @@ import edu.najah.cap.data.exportservice.todownload.localStorage;
 import edu.najah.cap.data.exportservice.toupload.FileUploadStrategy;
 import edu.najah.cap.iam.UserProfile;
 import edu.najah.cap.iam.UserType;
+import org.bson.Document;
 
 import java.util.Arrays;
 import java.util.List;
@@ -35,10 +36,12 @@ public class FileHandlingExportContext {
     }
 
     public void exportData(String username, MongoDatabase database) {
-        UserProfile userProfile = userProfileExporter.exportUserProfile(username, database);
+        Document userProfile = userProfileExporter.exportUserProfile(username, database);
+        String userTypeString = userProfile.getString("userType");
+        UserType userType = UserType.valueOf(userTypeString);
         pdfConverter.convertToPdf(userProfile, "UserProfile.pdf");
 
-        if (userProfile.getUserType() == UserType.PREMIUM_USER) {
+        if (userType == UserType.PREMIUM_USER) {
             paymentExporter.exportPaymentInformation(username, database);
             pdfConverter.convertToPdf(userProfile, "PaymentInfo.pdf");
             fileCompressor.compressFiles(List.of("UserProfile.pdf", "PaymentInfo.pdf"), "ExportedFiles.zip");

@@ -1,6 +1,6 @@
 package edu.najah.cap.data.exportservice.converting;
 
-import edu.najah.cap.iam.UserProfile;
+import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -8,7 +8,7 @@ import org.slf4j.LoggerFactory;
 public class PaymentPdfConverter implements PdfConverter {
     private static final Logger logger = LoggerFactory.getLogger(PaymentPdfConverter.class);
     @Override
-    public void convertToPdf(UserProfile userProfile, String outputPath) {
+    public void convertToPdf(Document document, String outputPath) {
         // Implementation to convert payment information to PDF
         logger.info("Converting payment information to PDF");
     }

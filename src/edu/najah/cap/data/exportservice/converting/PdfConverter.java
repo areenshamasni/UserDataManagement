@@ -1,7 +1,6 @@
 package edu.najah.cap.data.exportservice.converting;
-
-import edu.najah.cap.iam.UserProfile;
+import org.bson.Document;
 
 public interface PdfConverter {
-    void convertToPdf(UserProfile userProfile, String outputPath);
+    void convertToPdf(Document document, String outputPath);
 }
