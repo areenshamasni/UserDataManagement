@@ -42,7 +42,7 @@ public class Application {
 
     public static void main(String[] args) {
 
-        generateRandomData();
+        //generateRandomData();
         Instant start = Instant.now();
         System.out.println("Application Started: " + start);
         Scanner scanner = new Scanner(System.in);
@@ -62,14 +62,14 @@ public class Application {
         String connectionString = properties.getProperty("mongo.connection.string");
         MongoConnection mongoConnection = MongoConnection.getInstance(connectionString, "UserData");
 
-        try {
+       /* try {
             MongoDataInserter mongoDataInserter = new MongoDataInserter(mongoConnection.getDatabase());
             DataInserter dataInserter = new DataInserter(mongoDataInserter);
             dataInserter.insertData(userActivityService, paymentService, userService, postService);
         } catch (MongoException e) {
             logger.error(e.getMessage(), e);
         }
-
+*/
         Document query = new Document("userId", userName);
         boolean userExists = mongoConnection.getDatabase().getCollection("users").find(query).limit(1).iterator().hasNext();
         if (userExists) {
@@ -109,28 +109,33 @@ public class Application {
 
                             try {
                                 DeleteType deleteType = DeleteType.valueOf(deleteChoice);
-                                IDeleteService deleteService = DeleteFactory.createInstance(deleteType,mongoConnection.getDatabase());
+                                IDeleteService deleteService = DeleteFactory.createInstance(deleteType, mongoConnection.getDatabase());
 
-                                long startTime = System.currentTimeMillis();
-                                deleteService.deleteUserData(userName);
-                                System.out.println(deleteChoice + " delete operation completed for user: " + userName);
-                                if (DeleteType.HARD.equals(deleteType)) {
-                                    userExists = false;
+                                if (deleteService != null) {
+                                    long startTime = System.currentTimeMillis();
+                                    deleteService.deleteUserData(userName);
+                                    logger.info("{} delete operation completed for user: {}", deleteChoice, userName);
+                                    if (DeleteType.HARD.equals(deleteType)) {
+                                        userExists = false;
+                                    }
+                                    long endTime = System.currentTimeMillis();
+                                    long elapsedTime = endTime - startTime;
+                                    logger.info("Deleting data process took {} milliseconds.", elapsedTime);
+                                } else {
+                                    logger.error("Delete service could not be initialized.");
                                 }
-                                long endTime = System.currentTimeMillis();
-                                long elapsedTime = endTime - startTime;
-                                System.out.println("Deleting data process took " + elapsedTime + " milliseconds.");
                             } catch (IllegalArgumentException e) {
-                                logger.error("Invalid delete type. Please choose 'hard' or 'soft'.");
+                                logger.error("Invalid delete type. Please choose 'hard' or 'soft'.", e);
                             }
                             break;
                         case 4:
-                            System.out.println("Goodbye!");
+                            logger.info("Goodbye!");
                             break;
                         default:
                             logger.warn("Invalid choice. Please enter a valid option.");
                     }
                 }
+
             } while (userExists && (!validInput || choice != 4));
         } else {
             logger.warn("You are not an existing user in our system.");

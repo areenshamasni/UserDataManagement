@@ -1,10 +1,7 @@
 package edu.najah.cap.data.deleteservice;
-
 import com.mongodb.client.MongoDatabase;
-
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
 public class DeleteFactory {
     private static final Logger logger = Logger.getLogger(DeleteFactory.class.getName());
 
