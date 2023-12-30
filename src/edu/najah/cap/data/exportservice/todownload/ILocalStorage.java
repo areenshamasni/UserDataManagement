@@ -1,6 +1,6 @@
 package edu.najah.cap.data.exportservice.todownload;
 
-public interface localStorage {
+public interface ILocalStorage {
 
     void downloadFile(String filePath);
 }

@@ -1,5 +1,5 @@
 package edu.najah.cap.data.exportservice.toupload;
 
-public interface FileUploadStrategy {
+public interface IFileUploadStrategy {
     void uploadFile(String filePath);
 }

@@ -9,18 +9,18 @@ import edu.najah.cap.data.deleteservice.DeleteFactory;
 import edu.najah.cap.data.deleteservice.DeleteType;
 import edu.najah.cap.data.deleteservice.IDeleteService;
 import edu.najah.cap.data.exportservice.FileHandlingExportContext;
-import edu.najah.cap.data.exportservice.converting.FileCompressor;
-import edu.najah.cap.data.exportservice.converting.PdfConverter;
-import edu.najah.cap.data.exportservice.converting.UserProfilePdfConverter;
-import edu.najah.cap.data.exportservice.converting.ZipFileCompressor;
+import edu.najah.cap.data.exportservice.converting.IFileCompressor;
+import edu.najah.cap.data.exportservice.converting.IPdfConverter;
+import edu.najah.cap.data.exportservice.converting.UserProfileIPdfConverter;
+import edu.najah.cap.data.exportservice.converting.ZipIFileCompressor;
 import edu.najah.cap.data.exportservice.exportprocess.IPaymentExporter;
 import edu.najah.cap.data.exportservice.exportprocess.PaymentExporter;
 import edu.najah.cap.data.exportservice.exportprocess.IUserProfileExporter;
 import edu.najah.cap.data.exportservice.exportprocess.UserProfExporter;
-import edu.najah.cap.data.exportservice.todownload.localDownload;
-import edu.najah.cap.data.exportservice.todownload.localStorage;
+import edu.najah.cap.data.exportservice.todownload.ILocalDownload;
+import edu.najah.cap.data.exportservice.todownload.ILocalStorage;
 import edu.najah.cap.data.exportservice.toupload.DropboxUploader;
-import edu.najah.cap.data.exportservice.toupload.FileUploadStrategy;
+import edu.najah.cap.data.exportservice.toupload.IFileUploadStrategy;
 import edu.najah.cap.data.exportservice.toupload.GoogleDriveUploader;
 import edu.najah.cap.data.exportservice.toupload.fileStorageType;
 import edu.najah.cap.data.mongodb.*;
@@ -68,13 +68,13 @@ public class Application {
 
         Logger logger = LoggerFactory.getLogger(Application.class);
 
-        IUserProfileExporter IUserProfileExporter = new UserProfExporter();
-        IPaymentExporter IPaymentExporter = new PaymentExporter();
-        PdfConverter pdfConverter = new UserProfilePdfConverter();
-        FileCompressor fileCompressor = new ZipFileCompressor();
-        localStorage localStorage = new localDownload();
-        FileUploadStrategy googleDriveUploader = new GoogleDriveUploader();
-        FileUploadStrategy dropboxUploader = new DropboxUploader();
+        IUserProfileExporter userProfExporter = new UserProfExporter();
+        IPaymentExporter paymentExporter = new PaymentExporter();
+        IPdfConverter pdfConverter = new UserProfileIPdfConverter();
+        IFileCompressor fileCompressor = new ZipIFileCompressor();
+        ILocalStorage localDownload = new ILocalDownload();
+        IFileUploadStrategy googleDriveUploader = new GoogleDriveUploader();
+        IFileUploadStrategy dropboxUploader = new DropboxUploader();
 
         UserActivityMapper userActivityMapper = new UserActivityMapper();
         TransactionMapper transactionMapper = new TransactionMapper();
@@ -126,7 +126,7 @@ public class Application {
                     switch (choice) {
                         case 1:
                             FileHandlingExportContext exportContextWithDownload = new FileHandlingExportContext(
-                                    IUserProfileExporter, IPaymentExporter, pdfConverter, fileCompressor, localStorage, googleDriveUploader);
+                                    userProfExporter, paymentExporter, pdfConverter, fileCompressor, localDownload, googleDriveUploader);
                             exportContextWithDownload.exportAndDownload(userName, database);
                             break;
                         case 2:
@@ -137,11 +137,11 @@ public class Application {
                                 fileStorageType storageType = fileStorageType.valueOf(storageChoice);
                                 if (fileStorageType.DRIVE.equals(storageType)) {
                                     FileHandlingExportContext exportContextWithGoogleDrive = new FileHandlingExportContext(
-                                            IUserProfileExporter, IPaymentExporter, pdfConverter, fileCompressor, localStorage, googleDriveUploader);
+                                            userProfExporter, paymentExporter, pdfConverter, fileCompressor, localDownload, googleDriveUploader);
                                     exportContextWithGoogleDrive.exportAndUpload(userName, database);
                                 } else if (fileStorageType.DROPBOX.equals(storageType)) {
                                     FileHandlingExportContext exportContextWithDropbox = new FileHandlingExportContext(
-                                            IUserProfileExporter, IPaymentExporter, pdfConverter, fileCompressor, localStorage, dropboxUploader);
+                                            userProfExporter, paymentExporter, pdfConverter, fileCompressor, localDownload, dropboxUploader);
                                     exportContextWithDropbox.exportAndUpload(userName, database);
                                 }
                             } catch (IllegalArgumentException e) {
