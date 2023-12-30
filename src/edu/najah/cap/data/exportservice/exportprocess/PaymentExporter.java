@@ -7,10 +7,10 @@ import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class PaymentExporter implements IPaymentExporter {
+public class PaymentExporter implements IDocExporter {
     private static final Logger logger = LoggerFactory.getLogger(PaymentExporter.class);
     @Override
-    public Document exportPaymentInformation(String username, MongoDatabase database) {
+    public Document exportDoc(String username, MongoDatabase database) {
         Document query = new Document("userName", username);
         MongoCollection<Document> collection = database.getCollection("payments");
         MongoCursor<Document> cursor = collection.find(query).iterator();

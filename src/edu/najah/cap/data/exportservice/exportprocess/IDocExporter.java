@@ -3,6 +3,6 @@ package edu.najah.cap.data.exportservice.exportprocess;
 import com.mongodb.client.MongoDatabase;
 import org.bson.Document;
 
-public interface IPaymentExporter {
-    Document exportPaymentInformation(String username, MongoDatabase database);
+public interface IDocExporter {
+    Document exportDoc(String username, MongoDatabase database);
 }

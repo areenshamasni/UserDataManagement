@@ -7,10 +7,10 @@ import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class UserProfExporter implements IUserProfileExporter {
+public class UserProfExporter implements IDocExporter {
     private static final Logger logger = LoggerFactory.getLogger(UserProfExporter.class);
     @Override
-    public Document exportUserProfile(String username, MongoDatabase database) {
+    public Document exportDoc(String username, MongoDatabase database) {
         Document query = new Document("userId", username);
         MongoCollection<Document> collection = database.getCollection("users");
         MongoCursor<Document> cursor = collection.find(query).iterator();
