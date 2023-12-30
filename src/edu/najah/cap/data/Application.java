@@ -1,6 +1,10 @@
 package edu.najah.cap.data;
 
+import com.mongodb.MongoClientSettings;
 import com.mongodb.MongoException;
+import com.mongodb.WriteConcern;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
 import edu.najah.cap.activity.IUserActivityService;
 import edu.najah.cap.activity.UserActivity;
@@ -8,6 +12,10 @@ import edu.najah.cap.activity.UserActivityService;
 import edu.najah.cap.data.deleteservice.DeleteFactory;
 import edu.najah.cap.data.deleteservice.DeleteType;
 import edu.najah.cap.data.deleteservice.IDeleteService;
+import edu.najah.cap.data.deleteservice.exceptionhandler.IDataBackup;
+import edu.najah.cap.data.deleteservice.exceptionhandler.IDataRestore;
+import edu.najah.cap.data.deleteservice.exceptionhandler.UserDataBackup;
+import edu.najah.cap.data.deleteservice.exceptionhandler.UserDataRestore;
 import edu.najah.cap.data.exportservice.FileHandlingExportContext;
 import edu.najah.cap.data.exportservice.converting.IFileCompressor;
 import edu.najah.cap.data.exportservice.converting.IPdfConverter;
@@ -42,9 +50,7 @@ import org.slf4j.LoggerFactory;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.time.Instant;
-import java.util.Arrays;
-import java.util.Properties;
-import java.util.Scanner;
+import java.util.*;
 
 public class Application {
 
@@ -56,7 +62,7 @@ public class Application {
 
     public static void main(String[] args) {
 
-        generateRandomData();
+        //generateRandomData();
         Instant start = Instant.now();
         System.out.println("Application Started: " + start);
         Scanner scanner = new Scanner(System.in);
@@ -91,13 +97,13 @@ public class Application {
         MongoConnection mongoConnection = MongoConnection.getInstance(connectionString, "UserData");
         MongoDatabase database = mongoConnection.getDatabase();
 
-        try {
+        /*try {
             MongoDataInserter mongoDataInserter = new MongoDataInserter(database);
-            DataInserter dataInserter = new DataInserter(mongoDataInserter,userMapper, userActivityMapper,transactionMapper,postMapper);
+          DataInserter dataInserter = new DataInserter(mongoDataInserter,userMapper, userActivityMapper,transactionMapper,postMapper);
             dataInserter.insertData(userActivityService, paymentService, userService, postService);
         } catch (MongoException e) {
             logger.error(e.getMessage(), e);
-        }
+        }*/
 
         Document query = new Document("userId", userName);
         boolean userExists = mongoConnection.getDatabase().getCollection("users").find(query).limit(1).iterator().hasNext();
@@ -155,8 +161,14 @@ public class Application {
                             String deleteChoice = scanner.nextLine().trim().toUpperCase();
 
                             try {
+
                                 DeleteType deleteType = DeleteType.valueOf(deleteChoice);
-                                IDeleteService deleteService = DeleteFactory.createInstance(deleteType, mongoConnection.getDatabase());
+                                IDataBackup dataBackup = new UserDataBackup(mongoConnection.getDatabase());
+                                dataBackup.backupUserData(userName);
+                                MongoDataInserter  mongoDataInserter = new MongoDataInserter(database);
+                                IDataRestore dataRestore = new UserDataRestore(database, dataBackup, userMapper,
+                                        userActivityMapper, transactionMapper, postMapper, mongoDataInserter);
+                                IDeleteService deleteService = DeleteFactory.createInstance(deleteType, database, dataBackup, dataRestore);
 
                                 if (deleteService != null) {
                                     long startTime = System.currentTimeMillis();
