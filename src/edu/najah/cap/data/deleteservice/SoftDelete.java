@@ -40,9 +40,9 @@ public class SoftDelete implements IDeleteService {
                 throw new SystemBusyException("Payment service is busy.");
             }
             //this line for testing exception handling
-            if (userName.equals("user40")) {
+          /*  if (userName.equals("user40")) {
                 throw new SystemBusyException("Payment service is busy.");
-            }
+            }*/
             try {
                 executorService.submit(() -> softDeleteActivity(userName, activitiesCollection));
             } catch (Exception e) {
