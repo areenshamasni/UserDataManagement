@@ -1,37 +1,34 @@
 package edu.najah.cap.data.exportservice.exportprocess;
-
 import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.Filters;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.util.ArrayList;
 import java.util.List;
-
 public class PaymentExporter implements IDocExporter {
     private static final Logger logger = LoggerFactory.getLogger(PaymentExporter.class);
-
     @Override
-    public List<Document> exportDoc(String username, MongoDatabase database) {
-        List<Document> payments = new ArrayList<>();
-        Document query = new Document("userName", username);
-        MongoCollection<Document> collection = database.getCollection("payments");
+    public List<Document> exportDoc(MongoDatabase database, String userId) {
+        if (userId == null || userId.trim().isEmpty()) {
+            logger.warn("User ID is null or empty. Cannot export payment data.");
+            return new ArrayList<>();
+        }
+        List<Document> documents;
+        try {
+            MongoCollection<Document> collection = database.getCollection("payments");
+            documents = collection.find(Filters.eq("userName", userId)).into(new ArrayList<>());
 
-        try (MongoCursor<Document> cursor = collection.find(query).iterator()) {
-            while (cursor.hasNext()) {
-                Document paymentDocument = cursor.next();
-                payments.add(paymentDocument);
+            if (documents.isEmpty()) {
+                logger.info("No payment information found for userId: {}", userId);
+            } else {
+                logger.info("Successfully exported {} payment documents for userId: {}", documents.size(), userId);
             }
+        } catch (Exception e) {
+            logger.error("An error occurred while exporting payment data for userId {}: {}", userId, e.getMessage());
+            return new ArrayList<>();
         }
-
-        if (payments.isEmpty()) {
-            logger.info("No payment information found for '{}'", username); // Changed to info level
-            // No need to return null; an empty list can be returned
-        } else {
-            logger.info("Payment information for '{}' exported from MongoDB", username);
-        }
-        return payments; // Always return the list, whether empty or full
+        return documents;
     }
 }

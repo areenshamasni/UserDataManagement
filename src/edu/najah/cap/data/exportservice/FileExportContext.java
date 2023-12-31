@@ -1,5 +1,6 @@
 package edu.najah.cap.data.exportservice;
 
+import com.itextpdf.text.DocumentException;
 import com.mongodb.client.MongoDatabase;
 import edu.najah.cap.data.exportservice.converting.IFileCompressor;
 import edu.najah.cap.data.exportservice.converting.IPdfConverter;
@@ -10,6 +11,7 @@ import edu.najah.cap.iam.UserType;
 import org.bson.Document;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -42,66 +44,58 @@ public class FileExportContext {
         this.fileCompressor = fileCompressor;
         this.localDownload = localDownload;
         this.fileUploadStrategy = fileUploadStrategy;
+        logger.info("FileExportContext initialized");
     }
-
-    public void exportData(String username, MongoDatabase database) {
+    public void processData(String username, MongoDatabase database) {
         try {
-            // Assume exportDoc returns a list and the user profile is the first document
-            Document userProfile = userProfileExporter.exportDoc(username, database).get(0);
-            List<Document> posts = postExporter.exportDoc(username, database);
+            try {
+                logger.info("Processing data for username: {}", username);
+                Document userProfile = userProfileExporter.exportDoc(database, username).get(0);
+                String userTypeString = userProfile.getString("userType");
+                UserType userType = UserType.valueOf(userTypeString);
 
-            // Extract user type from the user profile document
-            String userTypeString = userProfile.getString("userType");
-            UserType userType = UserType.valueOf(userTypeString);
+                List<Document> posts = postExporter.exportDoc(database, username);
+                List<Document> activities = activityExporter.exportDoc(database, username);
+                List<Document> payments = paymentExporter.exportDoc(database, username);
 
-            List<File> filesToCompress = new ArrayList<>();
+                String userActivityPdfPath =  username +"_details" + ".pdf";
+                String paymentDetailsPdfPath =  username +"_payment" + ".pdf";
 
-            if (userType == UserType.PREMIUM_USER) {
-                // Export payment details for premium users
-                List<Document> paymentInfo = paymentExporter.exportDoc(username, database);
-                if (paymentInfo != null && !paymentInfo.isEmpty()) {
-                    File paymentPdf = pdfConverter.convertToPdf(paymentInfo, "PaymentInfo_" + username + ".pdf");
-                    filesToCompress.add(paymentPdf);
+                List<File> generatedPdfFiles = new ArrayList<>();
+
+                List<Document> userData = new ArrayList<>();
+                userData.add(userProfile);
+                userData.addAll(posts);
+
+                if(userType!=UserType.NEW_USER) {
+                    userData.addAll(activities);
                 }
-
-                // Export premium user details
-                List<Document> premiumDetails = new ArrayList<>();
-                premiumDetails.add(userProfile);
-                premiumDetails.addAll(posts);
-                premiumDetails.addAll(activityExporter.exportDoc(username, database));
-                File premiumDetailsPdf = pdfConverter.convertToPdf(premiumDetails, "PremiumDetails_" + username + ".pdf");
-                filesToCompress.add(premiumDetailsPdf);
-
-            } else {
-                // Export regular or new user details
-                List<Document> regularDetails = new ArrayList<>();
-                regularDetails.add(userProfile);
-                regularDetails.addAll(posts);
-                if (userType == UserType.REGULAR_USER) {
-                    regularDetails.addAll(activityExporter.exportDoc(username, database));
+                if (userType==UserType.PREMIUM_USER){
+                    File premiumDetailsPdf = pdfConverter.convertToPdf(payments, paymentDetailsPdfPath);
+                    generatedPdfFiles.add(premiumDetailsPdf);
                 }
-                File regularDetailsPdf = pdfConverter.convertToPdf(regularDetails, "UserDetails_" + username + ".pdf");
-                filesToCompress.add(regularDetailsPdf);
+                File UserInfoPdf = pdfConverter.convertToPdf(userData, userActivityPdfPath);
+                generatedPdfFiles.add(UserInfoPdf);
+
+                File zipFile = fileCompressor.compressFiles(generatedPdfFiles,  username + ".zip");
+                localDownload.downloadFile(zipFile.getAbsolutePath());
+
+            } catch (IllegalArgumentException | FileNotFoundException | DocumentException e) {
+                logger.error("Exception occurred: ", e);
+                throw new RuntimeException(e);
             }
-
-            // Compress all generated PDF files
-            File zipFile = fileCompressor.compressFiles(filesToCompress, "ExportedFiles_" + username + ".zip");
-
-            // Perform the final action (download/upload)
-            localDownload.downloadFile(zipFile.getAbsolutePath()); // for download
-            // fileUploadStrategy.uploadFile(zipFile.getAbsolutePath());
-
         } catch (Exception e) {
             logger.error("Error during data export for user '{}': {}", username, e.getMessage());
         }
     }
     public void exportAndDownload(String username, MongoDatabase database) {
-        exportData(username, database);
-        localDownload.downloadFile("ExportedFiles.zip");
+        logger.info("Exporting and downloading data for username: {}", username);
+        processData(username, database);
+        localDownload.downloadFile(username + ".zip");
     }
-
     public void exportAndUpload(String username, MongoDatabase database) {
-        exportData(username, database);
-        fileUploadStrategy.uploadFile("ExportedFiles.zip");
+        logger.info("Exporting and uploading data for username: {}", username);
+        processData(username, database);
+        fileUploadStrategy.uploadFile(username + ".zip");
     }
 }
