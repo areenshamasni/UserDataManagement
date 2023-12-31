@@ -5,5 +5,5 @@ import java.util.List;
 
 
 public interface IFileCompressor {
-    void compressFiles(List<File> files, String outputPath);
+    File compressFiles(List<File> files, String outputPath);
 }

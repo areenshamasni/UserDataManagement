@@ -7,25 +7,31 @@ import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class UserProfExporter implements IDocExporter {
     private static final Logger logger = LoggerFactory.getLogger(UserProfExporter.class);
+
     @Override
-    public Document exportDoc(String username, MongoDatabase database) {
+    public List<Document> exportDoc(String username, MongoDatabase database) {
+        List<Document> userProfiles = new ArrayList<>();
         Document query = new Document("userId", username);
         MongoCollection<Document> collection = database.getCollection("users");
-        MongoCursor<Document> cursor = collection.find(query).iterator();
-        Document userDocument;
-        try {
-            if (cursor.hasNext()) {
-                userDocument = cursor.next();
-                logger.info("User Profile for '{}' exported from mongodb", username);
-                return userDocument;
-            } else {
-                logger.error("'{}' Profile not found", username);
-                return null;
+
+        try (MongoCursor<Document> cursor = collection.find(query).iterator()) {
+            while (cursor.hasNext()) {
+                Document userProfileDocument = cursor.next();
+                userProfiles.add(userProfileDocument);
             }
-        } finally {
-            cursor.close();
         }
+
+        if (userProfiles.isEmpty()) {
+            logger.error("User profile for '{}' not found", username);
+            return null; // or return an empty list based on your requirement
+        } else {
+            logger.info("User profile(s) for '{}' exported from MongoDB", username);
+        }
+        return userProfiles;
     }
 }
