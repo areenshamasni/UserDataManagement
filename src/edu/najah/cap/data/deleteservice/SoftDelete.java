@@ -1,111 +1,128 @@
 package edu.najah.cap.data.deleteservice;
 
-import edu.najah.cap.data.deleteservice.exceptionhandler.IDataBackup;
-import edu.najah.cap.data.deleteservice.exceptionhandler.IDataRestore;
-import edu.najah.cap.exceptions.SystemBusyException;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.model.Updates;
 import com.mongodb.client.result.DeleteResult;
 import com.mongodb.client.result.UpdateResult;
+import edu.najah.cap.data.deleteservice.exceptionhandler.IDataRestore;
+import edu.najah.cap.exceptions.SystemBusyException;
 import org.bson.Document;
-import org.bson.conversions.Bson;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class SoftDelete implements IDeleteService {
     private static final Logger logger = LoggerFactory.getLogger(SoftDelete.class);
     private final MongoDatabase database;
-    private final IDataBackup dataBackup;
     private final IDataRestore dataRestore;
-
-    public SoftDelete(MongoDatabase database, IDataBackup dataBackup, IDataRestore dataRestore) {
+    private final ExecutorService executorService;
+    public SoftDelete(MongoDatabase database,  IDataRestore dataRestore) {
         this.database = database;
-        this.dataBackup = dataBackup;
         this.dataRestore = dataRestore;
+        this.executorService = Executors.newFixedThreadPool(10);
     }
     @Override
     public void deleteUserData(String userName) {
         try {
-            dataBackup.backupUserData(userName);
 
-            logger.info("Performing Soft Delete for user: {}", userName);
+            logger.info("Performing soft delete for user: {}", userName);
+
             MongoCollection<Document> usersCollection = database.getCollection("users");
             MongoCollection<Document> activitiesCollection = database.getCollection("activities");
             MongoCollection<Document> paymentsCollection = database.getCollection("payments");
             MongoCollection<Document> postsCollection = database.getCollection("posts");
 
-            Thread activitiesThread = new Thread(() -> {
-                try {
-                    DeleteResult result = activitiesCollection.deleteMany(new Document("userId", userName));
-                    logger.info("Activities deleted: {}", result.getDeletedCount());
-                } catch (Exception e) {
-                    logger.error("Error deleting activities for user: {}", userName, e);
-                }
-            });
+            try {
+                executorService.submit(() -> softDeletePayments(userName, paymentsCollection));
+            } catch (Exception e) {
+                throw new SystemBusyException("Payment service is busy.");
+            }
+            //this line for testing exception handling
+          /*  if (userName.equals("user40")) {
+                throw new SystemBusyException("Payment service is busy.");
+            }*/
+            try {
+                executorService.submit(() -> softDeleteActivity(userName, activitiesCollection));
+            } catch (Exception e) {
+                throw new SystemBusyException("Activity service is busy.");
+            }
+            try {
+                executorService.submit(() -> softDeleteUser(userName, usersCollection));
+            } catch (Exception e) {
+                throw new SystemBusyException("User service is busy.");
+            }
+            try {
+                executorService.submit(() -> softDeletePosts(userName, postsCollection));
+            } catch (Exception e) {
+                throw new SystemBusyException("Post service is busy.");
+            }
 
-            Thread paymentsThread = new Thread(() -> {
-                try {
-                    DeleteResult result = paymentsCollection.deleteMany(new Document("userName", userName));
-                    logger.info("Payments deleted: {}", result.getDeletedCount());
-                } catch (Exception e) {
-                    logger.error("Error deleting payments for user: {}", userName, e);
-                }
-            });
+            executorService.shutdown();
+            while (!executorService.isTerminated()) {
+                Thread.sleep(100);
+            }
 
-            Thread postsThread = new Thread(() -> {
-                try {
-                    DeleteResult result = postsCollection.deleteMany(new Document("Author", userName));
-                    logger.info("Posts deleted: {}", result.getDeletedCount());
-                } catch (Exception e) {
-                    logger.error("Error deleting posts for user: {}", userName, e);
-                }
-            });
-            Bson updates = Updates.combine(
-                    Updates.unset("firstName"),
-                    Updates.unset("lastName"),
-                    Updates.unset("phoneNumber"),
-                    Updates.unset("password"),
-                    Updates.unset("role"),
-                    Updates.unset("department"),
-                    Updates.unset("organization"),
-                    Updates.unset("country"),
-                    Updates.unset("city"),
-                    Updates.unset("street"),
-                    Updates.unset("postalCode"),
-                    Updates.unset("building"),
-                    Updates.unset("userType")
+            logger.info("Soft Delete for user: {} completed.", userName);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            logger.error("Thread '{}' interrupted during soft delete for user: {}", Thread.currentThread().getName(), userName);
+        } catch (SystemBusyException e) {
+            logger.error("Exception occurred during soft delete for user: {}. Data restoration initiated.", userName);
+            dataRestore.restoreUserData(userName);
+        }
+    }
+
+    private void softDeleteUser(String userName, MongoCollection<Document> usersCollection) {
+        try {
+            Document updates = new Document();
+            updates.append("$unset", new Document("firstName","")
+                    .append("lastName", "")
+                    .append("phoneNumber", "")
+                    .append("password", "")
+                    .append("role", "")
+                    .append("department", "")
+                    .append("organization", "")
+                    .append("country", "")
+                    .append("city", "")
+                    .append("street", "")
+                    .append("postalCode", "")
+                    .append("building", "")
+                    .append("userType", "")
             );
-
             UpdateResult userUpdateResult = usersCollection.updateOne(new Document("userId", userName), updates);
             if (userUpdateResult.getModifiedCount() > 0) {
                 logger.info("User data updated successfully.");
             } else {
                 logger.info("User data was not updated.");
             }
-            activitiesThread.start();
-            paymentsThread.start();
-            //this line for testing
-            /*if (userName.equals("user7")) {
-                throw new InterruptedException("Simulated System Interrupted Exception for testing.");
-            }*/
-            postsThread.start();
-            try {
-                activitiesThread.join();
-                paymentsThread.join();
-                postsThread.join();
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                logger.error("Thread '{}' interrupted while waiting for subthreads.", Thread.currentThread().getName(), e);
-                dataRestore.restoreUserData(userName);
-            }
-
-            logger.info("Soft Delete for user: {} completed.", userName);
+        } catch (Exception e) {
+            logger.error("Error updating user data for user: {}", userName, e);
         }
-        catch (Exception e) {
-
-            logger.error("Exception occurred during soft delete for user: {}. Data restoration initiated.", userName, e);
-            dataRestore.restoreUserData(userName);
+    }
+    private void softDeleteActivity(String userName, MongoCollection<Document> activitiesCollection) {
+        try {
+            DeleteResult result = activitiesCollection.deleteMany(new Document("userId", userName));
+            logger.info("Activities deleted: {}", result.getDeletedCount());
+        } catch (Exception e) {
+            logger.error("Error deleting activities for user: {}", userName, e);
+        }
+    }
+    private void softDeletePayments(String userName,MongoCollection<Document> paymentsCollection){
+        try {
+            DeleteResult result = paymentsCollection.deleteMany(new Document("userName", userName));
+            logger.info("Payments deleted: {}", result.getDeletedCount());
+        } catch (Exception e) {
+            logger.error("Error deleting payments for user: {}", userName, e);
+        }
+    }
+    private void softDeletePosts(String userName,MongoCollection<Document> postsCollection){
+        try {
+            DeleteResult result = postsCollection.deleteMany(new Document("Author", userName));
+            logger.info("Posts deleted: {}", result.getDeletedCount());
+        } catch (Exception e) {
+            logger.error("Error deleting posts for user: {}", userName, e);
         }
     }
 }

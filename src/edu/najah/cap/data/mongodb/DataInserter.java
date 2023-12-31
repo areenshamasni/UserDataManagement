@@ -12,6 +12,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class DataInserter {
     private final MongoDataInserter mongoDataInserter;
@@ -30,38 +32,30 @@ public class DataInserter {
         this.transactionMapper = transactionMapper;
         this.postMapper = postMapper;
     }
-
     public void insertData(IUserActivityService userActivityService, IPayment paymentService,
                            IUserService userService, IPostService postService) {
         Util.setSkipValidation(true);
-
+        ExecutorService executorService = Executors.newFixedThreadPool(10);
         for (int i = 0; i < 100; i++) {
+
             final String userId = "user" + i;
 
-            Thread activitiesThread = new Thread(() -> insertUserActivities(userActivityService, userId));
-            Thread transactionsThread = new Thread(() -> insertUserTransactions(paymentService, userId));
-            Thread postsThread = new Thread(() -> insertUserPosts(postService, userId));
-            Thread userProfileThread = new Thread(() -> insertUserProfile(userService, userId));
+            executorService.execute(() -> insertUserActivities(userActivityService, userId));
+            executorService.execute(() -> insertUserTransactions(paymentService, userId));
+            executorService.execute(() -> insertUserPosts(postService, userId));
+            executorService.execute(() -> insertUserProfile(userService, userId));
 
-            activitiesThread.start();
-            transactionsThread.start();
-            postsThread.start();
-            userProfileThread.start();
-
-            try {
-                activitiesThread.join();
-                transactionsThread.join();
-                postsThread.join();
-                userProfileThread.join();
-            } catch (InterruptedException e) {
-                logger.error("Thread interrupted during insertData for userId: {}", userId, e);
-                Thread.currentThread().interrupt();
-            }
+        }
+        executorService.shutdown();
+        try {
+            executorService.awaitTermination(Long.MAX_VALUE, java.util.concurrent.TimeUnit.NANOSECONDS);
+        } catch (InterruptedException e) {
+            logger.error("Thread interrupted during insertData", e);
+            Thread.currentThread().interrupt();
         }
 
         Util.setSkipValidation(false);
     }
-
     private void insertUserActivities(IUserActivityService userActivityService, String userId) {
         try {
             List<UserActivity> userActivities = userActivityService.getUserActivity(userId);
@@ -72,7 +66,6 @@ public class DataInserter {
             logger.error("Error inserting user activities for userId: {}", userId, e);
         }
     }
-
     private void insertUserTransactions(IPayment paymentService, String userId) {
         try {
             List<Transaction> transactions = paymentService.getTransactions(userId);
@@ -83,7 +76,6 @@ public class DataInserter {
             logger.error("Error inserting user transactions for userId: {}", userId, e);
         }
     }
-
     private void insertUserPosts(IPostService postService, String userId) {
         try {
             List<Post> posts = postService.getPosts(userId);
@@ -94,7 +86,6 @@ public class DataInserter {
             logger.error("Error inserting user posts for userId: {}", userId, e);
         }
     }
-
     private void insertUserProfile(IUserService userService, String userId) {
         try {
             UserProfile userProfile = userService.getUser(userId);

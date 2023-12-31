@@ -1,62 +1,41 @@
 package edu.najah.cap.data.deleteservice.exceptionhandler;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.model.Filters;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 public class UserDataBackup implements IDataBackup {
-    private static final Logger logger = LoggerFactory.getLogger(UserDataBackup.class);
     private final MongoDatabase database;
-    private final Map<String, Map<String, List<Document>>> userBackupData;
-
+    private static final Logger logger = LoggerFactory.getLogger(UserDataBackup.class);
     public UserDataBackup(MongoDatabase database) {
         this.database = database;
-        this.userBackupData = new HashMap<>();
     }
-
     @Override
-    public void backupUserData(String userName) {
-        Map<String, List<Document>> userBackup = Collections.synchronizedMap(new HashMap<>());
-        backupCollection("users", userName, userBackup);
-        backupCollection("activities", userName, userBackup);
-        backupCollection("payments", userName, userBackup);
-        backupCollection("posts", userName, userBackup);
-        userBackupData.put(userName, userBackup);
+    public Map<String, List<Document>> backupUserData(String userName) {
+        Map<String, List<Document>> userBackupData = new HashMap<>();
+        backupCollection(userBackupData, "users", "userId", userName);
+        backupCollection(userBackupData, "activities", "userId", userName);
+        backupCollection(userBackupData, "payments", "userName", userName);
+        backupCollection(userBackupData, "posts", "Author", userName);
         logger.info("User data for {} backed up successfully", userName);
+        return userBackupData;
     }
-
-    private void backupCollection(String collectionName, String userName, Map<String, List<Document>> userBackup) {
+    private void backupCollection(Map<String, List<Document>> userBackupData, String collectionName, String fieldName, String userName) {
         try {
             MongoCollection<Document> collection = database.getCollection(collectionName);
-            String fieldName = getFieldNameForCollection(collectionName);
-            List<Document> documents = collection.find(Filters.eq(fieldName, userName)).into(new ArrayList<>());
-            userBackup.put(collectionName, documents);
+            List<Document> documents = new ArrayList<>();
+
+            for (Document document : collection.find(new Document(fieldName, userName))) {
+                documents.add(document);
+            }
+            userBackupData.put(collectionName, documents);
+            logger.info("Backed up {} documents from {}", documents.size(), collectionName);
         } catch (Exception e) {
             logger.error("Error backing up collection: {} for user: {}", collectionName, userName, e);
         }
-    }
-
-    private String getFieldNameForCollection(String collectionName) {
-        switch (collectionName) {
-            case "users":
-            case "activities":
-                return "userId";
-            case "posts":
-                return "Author";
-            case "payments":
-                return "userName";
-            default:
-                return "userId";
-        }
-    }
-@Override
-    public Map<String, List<Document>> getUserBackupData(String userName) {
-        return userBackupData.get(userName);
     }
 }
