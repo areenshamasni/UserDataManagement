@@ -2,7 +2,6 @@ package edu.najah.cap.data.exportservice;
 
 import com.itextpdf.text.DocumentException;
 import com.mongodb.client.MongoDatabase;
-import edu.najah.cap.customException.SoftDeleteException;
 import edu.najah.cap.data.exportservice.converting.IFileCompressor;
 import edu.najah.cap.data.exportservice.converting.IPdfConverter;
 import edu.najah.cap.data.exportservice.exportprocess.IDocExporter;
@@ -17,7 +16,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
+
 import java.util.List;
 
 public class FileExportContext {
@@ -66,36 +65,28 @@ public class FileExportContext {
         logger.info("File Export Context initialized");
     }
 
-    public File processData(String username, MongoDatabase database) throws SoftDeleteException {
+    public File processData(String username, MongoDatabase database) {
         try {
             logger.info("Processing data for username: {}", username);
             Document userProfile = userProfileExporter.exportDoc(database, username).get(0);
             List<File> generatedPdfFiles = new ArrayList<>();
+            List<Document> userData = new ArrayList<>();
+            String userDetailsPdfPath = username + "_details" + ".pdf";
+            String paymentDetailsPdfPath = username + "_payment" + ".pdf";
 
-            if (isSoftDeleted(userProfile)) {
-                List<Document> userData = new ArrayList<>();
-                Document basicInfo = new Document()
-                        .append("userId", userProfile.getString("userId"))
-                        .append("email", userProfile.getString("email"));
-                userData.add(basicInfo);
-
-                String userDetailsPdfPath = username + "_details" + ".pdf";
+            if (userProfile.getString("firstName") == null && userProfile.getString("lastName") == null) {
+                userData.add(userProfile);
                 File basicInfoPdf = pdfConverter.convertToPdf(userData, userDetailsPdfPath);
                 generatedPdfFiles.add(basicInfoPdf);
 
             } else {
                 String userTypeString = userProfile.getString("userType");
                 UserType userType = UserType.valueOf(userTypeString);
-
                 List<Document> posts = postExporter.exportDoc(database, username);
                 List<Document> activities = activityExporter.exportDoc(database, username);
                 List<Document> payments = paymentExporter.exportDoc(database, username);
 
-                String userDetailsPdfPath = username + "_details" + ".pdf";
-                String paymentDetailsPdfPath = username + "_payment" + ".pdf";
 
-
-                List<Document> userData = new ArrayList<>();
                 userData.add(userProfile);
                 userData.addAll(posts);
 
@@ -111,25 +102,22 @@ public class FileExportContext {
             }
             return fileCompressor.compressFiles(generatedPdfFiles, username + ".zip");
 
-        } catch(IllegalArgumentException | FileNotFoundException | DocumentException e){
+        } catch (IllegalArgumentException | FileNotFoundException | DocumentException e) {
             logger.error("Exception occurred: ", e);
-            throw new SoftDeleteException("An error occurred while processing the data: " + e.getMessage());
-        } catch(Exception e){
+        } catch (Exception e) {
             logger.error("Error during data export for user '{}': {}", username, e.getMessage());
-            throw new SoftDeleteException("Unexpected error during data export: " + e.getMessage());
         }
-    }
-    private boolean isSoftDeleted(Document userProfile) {
-        return userProfile.getString("firstName") == null && userProfile.getString("lastName") == null;
+
+        return null;
     }
 
-    public void exportAndDownload(String username, MongoDatabase database) throws SoftDeleteException {
+    public void exportAndDownload(String username, MongoDatabase database)  {
         logger.info("Exporting and downloading data for username: {}", username);
         File zipFile = processData(username, database);
         localDownload.downloadFile(zipFile.getAbsolutePath());
     }
 
-    public void exportAndUpload(String username, MongoDatabase database, String outputPath) throws SoftDeleteException, IOException {
+    public void exportAndUpload(String username, MongoDatabase database, String outputPath) throws IOException {
         logger.info("Exporting and uploading data for username: {}", username);
         File zipFile = processData(username, database);
         fileUploadStrategy.uploadFile(zipFile.getAbsolutePath(), outputPath);
