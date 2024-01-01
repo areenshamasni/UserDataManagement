@@ -148,7 +148,7 @@ public class Application {
                                     exportContextWithGoogleDrive.exportAndUpload(userName, database, "1KJmz8EXglrnxRSkZq4deNdQhRKfKScv8");
                                 } else if (fileStorageType.DROPBOX.equals(storageType)) {
                                     FileExportContext exportContextWithDropbox = new FileExportContext(userProfExporter, postExporter, activityExporter, paymentExporter, pdfConverter, fileCompressor, dropboxUploader);
-                                    exportContextWithDropbox.exportAndUpload(userName, database, "dropboxlink");
+                                    exportContextWithDropbox.exportAndUpload(userName, database, "https://www.dropbox.com/scl/fo/y7aj1rq465i8mkh4jjij0/h?rlkey=k8kqpstj28o3kajf6w4pcd7cv&dl=0");
                                 }
                             } catch (Exception e) {
                                 logger.error("Error in Uploading process, try again later.");
