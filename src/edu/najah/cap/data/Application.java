@@ -45,13 +45,13 @@ import org.slf4j.LoggerFactory;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
+import java.security.UnrecoverableEntryException;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Properties;
 import java.util.Scanner;
 
 public class Application {
-
     private static final IUserActivityService userActivityService = new UserActivityService();
     private static final IPayment paymentService = new PaymentService();
     private static final IUserService userService = new UserService();
@@ -182,7 +182,6 @@ public class Application {
                             } catch (IllegalArgumentException e) {
                                 logger.error("Invalid delete type. Please choose 'hard' or 'soft'.", e);
                             } catch (SystemBusyException e) {
-                                
                             }
                             break;
                         case 4:
