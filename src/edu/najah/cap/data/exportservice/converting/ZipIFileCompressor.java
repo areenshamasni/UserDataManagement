@@ -1,6 +1,8 @@
 package edu.najah.cap.data.exportservice.converting;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -8,8 +10,10 @@ import java.io.IOException;
 import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
+
 public class ZipIFileCompressor implements IFileCompressor {
     private static final Logger logger = LoggerFactory.getLogger(ZipIFileCompressor.class);
+
     @Override
     public File compressFiles(List<File> files, String outputPath) throws IOException {
         try (ZipOutputStream zipOut = new ZipOutputStream(new FileOutputStream(outputPath))) {

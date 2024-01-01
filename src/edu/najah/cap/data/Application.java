@@ -1,35 +1,21 @@
 package edu.najah.cap.data;
 
-import com.mongodb.MongoClientSettings;
 import com.mongodb.MongoException;
-import com.mongodb.WriteConcern;
-import com.mongodb.client.MongoClient;
-import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
 import edu.najah.cap.activity.IUserActivityService;
 import edu.najah.cap.activity.UserActivity;
 import edu.najah.cap.activity.UserActivityService;
-import edu.najah.cap.data.deleteservice.DeleteFactory;
-import edu.najah.cap.data.deleteservice.DeleteType;
-import edu.najah.cap.data.deleteservice.IDeleteService;
-import edu.najah.cap.data.deleteservice.exceptionhandler.IDataBackup;
-import edu.najah.cap.data.deleteservice.exceptionhandler.IDataRestore;
-import edu.najah.cap.data.deleteservice.exceptionhandler.UserDataBackup;
-import edu.najah.cap.data.deleteservice.exceptionhandler.UserDataRestore;
-import edu.najah.cap.data.exportservice.FileHandlingExportContext;
+import edu.najah.cap.data.exportservice.FileExportContext;
 import edu.najah.cap.data.exportservice.converting.IFileCompressor;
 import edu.najah.cap.data.exportservice.converting.IPdfConverter;
-import edu.najah.cap.data.exportservice.converting.UserProfileIPdfConverter;
+import edu.najah.cap.data.exportservice.converting.PdfConverter;
 import edu.najah.cap.data.exportservice.converting.ZipIFileCompressor;
-import edu.najah.cap.data.exportservice.exportprocess.IPaymentExporter;
-import edu.najah.cap.data.exportservice.exportprocess.PaymentExporter;
-import edu.najah.cap.data.exportservice.exportprocess.IUserProfileExporter;
-import edu.najah.cap.data.exportservice.exportprocess.UserProfExporter;
-import edu.najah.cap.data.exportservice.todownload.ILocalDownload;
+import edu.najah.cap.data.exportservice.exportprocess.*;
 import edu.najah.cap.data.exportservice.todownload.ILocalStorage;
+import edu.najah.cap.data.exportservice.todownload.LocalDownload;
 import edu.najah.cap.data.exportservice.toupload.DropboxUploader;
-import edu.najah.cap.data.exportservice.toupload.IFileUploadStrategy;
 import edu.najah.cap.data.exportservice.toupload.GoogleDriveUploader;
+import edu.najah.cap.data.exportservice.toupload.IFileUploadStrategy;
 import edu.najah.cap.data.exportservice.toupload.fileStorageType;
 import edu.najah.cap.data.mongodb.*;
 import edu.najah.cap.exceptions.Util;
@@ -50,7 +36,9 @@ import org.slf4j.LoggerFactory;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.time.Instant;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Properties;
+import java.util.Scanner;
 
 public class Application {
 
@@ -74,11 +62,13 @@ public class Application {
 
         Logger logger = LoggerFactory.getLogger(Application.class);
 
-        IUserProfileExporter userProfExporter = new UserProfExporter();
-        IPaymentExporter paymentExporter = new PaymentExporter();
-        IPdfConverter pdfConverter = new UserProfileIPdfConverter();
+        IDocExporter userProfExporter = new UserProfExporter();
+        IDocExporter postExporter = new PostExporter();
+        IDocExporter activityExporter = new ActivityExporter();
+        IDocExporter paymentExporter = new PaymentExporter();
+        IPdfConverter pdfConverter = new PdfConverter();
         IFileCompressor fileCompressor = new ZipIFileCompressor();
-        ILocalStorage localDownload = new ILocalDownload();
+        ILocalStorage localDownload = new LocalDownload("C:\\Users\\Think\\Downloads");
         IFileUploadStrategy googleDriveUploader = new GoogleDriveUploader();
         IFileUploadStrategy dropboxUploader = new DropboxUploader();
 
@@ -97,13 +87,13 @@ public class Application {
         MongoConnection mongoConnection = MongoConnection.getInstance(connectionString, "UserData");
         MongoDatabase database = mongoConnection.getDatabase();
 
-        /*try {
+        try {
             MongoDataInserter mongoDataInserter = new MongoDataInserter(database);
-          DataInserter dataInserter = new DataInserter(mongoDataInserter,userMapper, userActivityMapper,transactionMapper,postMapper);
-            dataInserter.insertData(userActivityService, paymentService, userService, postService);
+            DataInserter dataInserter = new DataInserter(mongoDataInserter, userMapper, userActivityMapper, transactionMapper, postMapper);
+            //dataInserter.insertData(userActivityService, paymentService, userService, postService);
         } catch (MongoException e) {
             logger.error(e.getMessage(), e);
-        }*/
+        }
 
         Document query = new Document("userId", userName);
         boolean userExists = mongoConnection.getDatabase().getCollection("users").find(query).limit(1).iterator().hasNext();
@@ -131,62 +121,52 @@ public class Application {
                 if (validInput) {
                     switch (choice) {
                         case 1:
-                            FileHandlingExportContext exportContextWithDownload = new FileHandlingExportContext(
-                                    userProfExporter, paymentExporter, pdfConverter, fileCompressor, localDownload, googleDriveUploader);
+                            FileExportContext exportContextWithDownload = new FileExportContext(userProfExporter, postExporter, activityExporter, paymentExporter, pdfConverter, fileCompressor, localDownload);
                             exportContextWithDownload.exportAndDownload(userName, database);
                             break;
                         case 2:
                             System.out.println("Choose Google Drive or Dropbox to upload?(drive/dropbox): ");
                             scanner.nextLine();
                             String storageChoice = scanner.nextLine().trim().toUpperCase();
-                            try {
+
                                 fileStorageType storageType = fileStorageType.valueOf(storageChoice);
+                                System.out.println(storageType);
                                 if (fileStorageType.DRIVE.equals(storageType)) {
-                                    FileHandlingExportContext exportContextWithGoogleDrive = new FileHandlingExportContext(
-                                            userProfExporter, paymentExporter, pdfConverter, fileCompressor, localDownload, googleDriveUploader);
-                                    exportContextWithGoogleDrive.exportAndUpload(userName, database);
+                                    FileExportContext exportContextWithGoogleDrive = new FileExportContext(userProfExporter, postExporter, activityExporter, paymentExporter, pdfConverter, fileCompressor, googleDriveUploader);
+                                    exportContextWithGoogleDrive.exportAndUpload(userName, database, "1KJmz8EXglrnxRSkZq4deNdQhRKfKScv8");
                                 } else if (fileStorageType.DROPBOX.equals(storageType)) {
-                                    FileHandlingExportContext exportContextWithDropbox = new FileHandlingExportContext(
-                                            userProfExporter, paymentExporter, pdfConverter, fileCompressor, localDownload, dropboxUploader);
-                                    exportContextWithDropbox.exportAndUpload(userName, database);
+                                    FileExportContext exportContextWithDropbox = new FileExportContext(userProfExporter, postExporter, activityExporter, paymentExporter, pdfConverter, fileCompressor, dropboxUploader);
+                                    exportContextWithDropbox.exportAndUpload(userName, database, "dropboxlink");
                                 }
-                            } catch (IllegalArgumentException e) {
-                                logger.error("Invalid File Storage type. Please choose 'drive' or 'dropbox'.");
-                            }
+
                             break;
-                        case 3:
-                            System.out.println("Choose delete type (hard/soft): ");
-                            scanner.nextLine();
-
-                            String deleteChoice = scanner.nextLine().trim().toUpperCase();
-
-                            try {
-
-                                DeleteType deleteType = DeleteType.valueOf(deleteChoice);
-                                IDataBackup dataBackup = new UserDataBackup(mongoConnection.getDatabase());
-                                dataBackup.backupUserData(userName);
-                                MongoDataInserter  mongoDataInserter = new MongoDataInserter(database);
-                                IDataRestore dataRestore = new UserDataRestore(database, dataBackup, userMapper,
-                                        userActivityMapper, transactionMapper, postMapper, mongoDataInserter);
-                                IDeleteService deleteService = DeleteFactory.createInstance(deleteType, database, dataBackup, dataRestore);
-
-                                if (deleteService != null) {
-                                    long startTime = System.currentTimeMillis();
-                                    deleteService.deleteUserData(userName);
-                                    logger.info("{} delete operation completed for user: {}", deleteChoice, userName);
-                                    if (DeleteType.HARD.equals(deleteType)) {
-                                        userExists = false;
-                                    }
-                                    long endTime = System.currentTimeMillis();
-                                    long elapsedTime = endTime - startTime;
-                                    logger.info("Deleting data process took {} milliseconds.", elapsedTime);
-                                } else {
-                                    logger.error("Delete service could not be initialized.");
-                                }
-                            } catch (IllegalArgumentException e) {
-                                logger.error("Invalid delete type. Please choose 'hard' or 'soft'.", e);
-                            }
-                            break;
+//                        case 3:
+//                            System.out.println("Choose delete type (hard/soft): ");
+//                            scanner.nextLine();
+//
+//                            String deleteChoice = scanner.nextLine().trim().toUpperCase();
+//
+//                            try {
+//                                DeleteType deleteType = DeleteType.valueOf(deleteChoice);
+//                                IDeleteService deleteService = DeleteFactory.createInstance(deleteType, mongoConnection.getDatabase());
+//
+//                                if (deleteService != null) {
+//                                    long startTime = System.currentTimeMillis();
+//                                    deleteService.deleteUserData(userName);
+//                                    logger.info("{} delete operation completed for user: {}", deleteChoice, userName);
+//                                    if (DeleteType.HARD.equals(deleteType)) {
+//                                        userExists = false;
+//                                    }
+//                                    long endTime = System.currentTimeMillis();
+//                                    long elapsedTime = endTime - startTime;
+//                                    logger.info("Deleting data process took {} milliseconds.", elapsedTime);
+//                                } else {
+//                                    logger.error("Delete service could not be initialized.");
+//                                }
+//                            } catch (IllegalArgumentException e) {
+//                                logger.error("Invalid delete type. Please choose 'hard' or 'soft'.", e);
+//                            }
+                        // break;
                         case 4:
                             logger.info("Goodbye!");
                             break;
@@ -198,6 +178,8 @@ public class Application {
             } while (userExists && (!validInput || choice != 4));
         } else {
             logger.warn("You are not an existing user in our system.");
+
+            mongoConnection.closeMongoClient();
         }
 
         mongoConnection.closeMongoClient();

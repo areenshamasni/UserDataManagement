@@ -1,6 +1,8 @@
 package edu.najah.cap.data.exportservice.todownload;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -9,6 +11,7 @@ import java.nio.file.StandardCopyOption;
 public class LocalDownload implements ILocalStorage {
     private static final Logger logger = LoggerFactory.getLogger(LocalDownload.class);
     private final String downloadDirectory;
+
     public LocalDownload(String downloadDirectory) {
         this.downloadDirectory = downloadDirectory;
     }
