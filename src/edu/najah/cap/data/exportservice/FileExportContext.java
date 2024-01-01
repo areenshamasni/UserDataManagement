@@ -16,7 +16,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
-
 import java.util.List;
 
 public class FileExportContext {
@@ -47,6 +46,7 @@ public class FileExportContext {
         this.localDownload = localDownload;
         logger.info("File Export Context initialized");
     }
+
     public FileExportContext(
             IDocExporter userProfileExporter,
             IDocExporter postExporter,
@@ -85,8 +85,6 @@ public class FileExportContext {
                 List<Document> posts = postExporter.exportDoc(database, username);
                 List<Document> activities = activityExporter.exportDoc(database, username);
                 List<Document> payments = paymentExporter.exportDoc(database, username);
-
-
                 userData.add(userProfile);
                 userData.addAll(posts);
 
@@ -107,11 +105,10 @@ public class FileExportContext {
         } catch (Exception e) {
             logger.error("Error during data export for user '{}': {}", username, e.getMessage());
         }
-
         return null;
     }
 
-    public void exportAndDownload(String username, MongoDatabase database)  {
+    public void exportAndDownload(String username, MongoDatabase database) {
         logger.info("Exporting and downloading data for username: {}", username);
         File zipFile = processData(username, database);
         localDownload.downloadFile(zipFile.getAbsolutePath());

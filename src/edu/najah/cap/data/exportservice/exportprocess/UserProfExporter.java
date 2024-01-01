@@ -31,14 +31,13 @@ public class UserProfExporter implements IDocExporter {
                 return documents;
             }
 
-            if(userProfile.getString("firstName") == null && userProfile.getString("lastName") == null) {
+            if (userProfile.getString("firstName") == null && userProfile.getString("lastName") == null) {
                 Document basicInfo = new Document()
                         .append("userId", userProfile.getString("userId"))
                         .append("email", userProfile.getString("email"));
                 documents.add(basicInfo);
                 logger.info("User with userId: {} has been soft deleted. Exporting limited data.", userId);
-            }
-            else{
+            } else {
                 documents.add(userProfile);
             }
             logger.info("Successfully exported user profile for userId: {}", userId);

@@ -5,10 +5,11 @@ import com.dropbox.core.DbxRequestConfig;
 import com.dropbox.core.v2.DbxClientV2;
 import com.dropbox.core.v2.files.FileMetadata;
 import com.dropbox.core.v2.files.WriteMode;
+import com.dropbox.core.v2.sharing.ListFoldersResult;
 import com.dropbox.core.v2.sharing.SharedFolderMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.dropbox.core.v2.sharing.ListFoldersResult;
+
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;

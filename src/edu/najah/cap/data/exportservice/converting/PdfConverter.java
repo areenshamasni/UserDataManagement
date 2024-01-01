@@ -18,13 +18,6 @@ public class PdfConverter implements IPdfConverter {
     private static final String HIDDEN_FIELD = "_id";
     private static final String MASKED_FIELD = "password";
 
-    public File convertToPdf(List<org.bson.Document> data, String outputPath)
-            throws FileNotFoundException, DocumentException {
-        createPdf(data, outputPath);
-        logger.info("PDF created at: {}", outputPath);
-        return new File(outputPath);
-    }
-
     private static void createPdf(List<org.bson.Document> data, String outputPath)
             throws FileNotFoundException, DocumentException {
         Document pdfDocument = new Document();
@@ -45,5 +38,12 @@ public class PdfConverter implements IPdfConverter {
             pdfDocument.add(new Paragraph("\n"));
         }
         pdfDocument.close();
+    }
+
+    public File convertToPdf(List<org.bson.Document> data, String outputPath)
+            throws FileNotFoundException, DocumentException {
+        createPdf(data, outputPath);
+        logger.info("PDF created at: {}", outputPath);
+        return new File(outputPath);
     }
 }

@@ -1,4 +1,5 @@
 package edu.najah.cap.data.deleteservice;
+
 import com.mongodb.MongoException;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
@@ -12,16 +13,19 @@ import edu.najah.cap.exceptions.Util;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
 public class SoftDelete implements IDeleteService {
     private static final Logger logger = LoggerFactory.getLogger(SoftDelete.class);
     private final MongoDatabase database;
     private final IDataRestore dataRestore;
     private final IDataBackup dataBackup;
     private final ExecutorService executorService;
+
     public SoftDelete(MongoDatabase database, IDataRestore dataRestore, IDataBackup dataBackup) {
         this.database = database;
         this.dataRestore = dataRestore;
@@ -29,18 +33,19 @@ public class SoftDelete implements IDeleteService {
 
         this.executorService = Executors.newFixedThreadPool(10);
     }
+
     @Override
     public void deleteUserData(String userName) throws SystemBusyException {
         logger.info("Performing soft delete for user: {}", userName);
 
         Map<String, List<Document>> userBackup = dataBackup.backupUserData(userName);
         try {
-        Util.validateUserName(userName);
+            Util.validateUserName(userName);
 
-        MongoCollection<Document> usersCollection = database.getCollection("users");
-        MongoCollection<Document> activitiesCollection = database.getCollection("activities");
-        MongoCollection<Document> paymentsCollection = database.getCollection("payments");
-        MongoCollection<Document> postsCollection = database.getCollection("posts");
+            MongoCollection<Document> usersCollection = database.getCollection("users");
+            MongoCollection<Document> activitiesCollection = database.getCollection("activities");
+            MongoCollection<Document> paymentsCollection = database.getCollection("payments");
+            MongoCollection<Document> postsCollection = database.getCollection("posts");
 
             executorService.submit(() -> softDeletePayments(userName, paymentsCollection));
             executorService.submit(() -> softDeleteActivity(userName, activitiesCollection));
@@ -64,10 +69,11 @@ public class SoftDelete implements IDeleteService {
             dataRestore.restoreUserData(userName, userBackup);
         }
     }
+
     private void softDeleteUser(String userName, MongoCollection<Document> usersCollection) {
         try {
             Document updates = new Document();
-            updates.append("$unset", new Document("firstName","")
+            updates.append("$unset", new Document("firstName", "")
                     .append("lastName", "")
                     .append("phoneNumber", "")
                     .append("password", "")
@@ -91,6 +97,7 @@ public class SoftDelete implements IDeleteService {
             logger.error("Error updating user data for user: {}", userName, e);
         }
     }
+
     private void softDeleteActivity(String userName, MongoCollection<Document> activitiesCollection) {
         try {
             DeleteResult result = activitiesCollection.deleteMany(new Document("userId", userName));
@@ -99,7 +106,8 @@ public class SoftDelete implements IDeleteService {
             logger.error("Error deleting activities for user: {}", userName, e);
         }
     }
-    private void softDeletePayments(String userName,MongoCollection<Document> paymentsCollection){
+
+    private void softDeletePayments(String userName, MongoCollection<Document> paymentsCollection) {
         try {
             DeleteResult result = paymentsCollection.deleteMany(new Document("userName", userName));
             logger.info("Payments deleted: {}", result.getDeletedCount());
@@ -107,11 +115,12 @@ public class SoftDelete implements IDeleteService {
             logger.error("Error deleting payments for user: {}", userName, e);
         }
     }
-    private void softDeletePosts(String userName,MongoCollection<Document> postsCollection){
+
+    private void softDeletePosts(String userName, MongoCollection<Document> postsCollection) {
         try {
             DeleteResult result = postsCollection.deleteMany(new Document("Author", userName));
             logger.info("Posts deleted: {}", result.getDeletedCount());
-        } catch (MongoException  e) {
+        } catch (MongoException e) {
             logger.error("Error deleting posts for user: {}", userName, e);
         }
     }

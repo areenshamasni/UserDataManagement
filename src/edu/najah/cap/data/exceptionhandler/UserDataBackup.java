@@ -1,19 +1,24 @@
 package edu.najah.cap.data.exceptionhandler;
+
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 public class UserDataBackup implements IDataBackup {
-    private final MongoDatabase database;
     private static final Logger logger = LoggerFactory.getLogger(UserDataBackup.class);
+    private final MongoDatabase database;
+
     public UserDataBackup(MongoDatabase database) {
         this.database = database;
     }
+
     @Override
     public Map<String, List<Document>> backupUserData(String userName) {
         Map<String, List<Document>> userBackupData = new HashMap<>();
@@ -24,6 +29,7 @@ public class UserDataBackup implements IDataBackup {
         logger.info("User data for {} backed up successfully", userName);
         return userBackupData;
     }
+
     private void backupCollection(Map<String, List<Document>> userBackupData, String collectionName, String fieldName, String userName) {
         try {
             MongoCollection<Document> collection = database.getCollection(collectionName);

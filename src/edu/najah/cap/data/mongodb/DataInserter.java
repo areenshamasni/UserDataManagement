@@ -1,4 +1,5 @@
 package edu.najah.cap.data.mongodb;
+
 import edu.najah.cap.activity.IUserActivityService;
 import edu.najah.cap.activity.UserActivity;
 import edu.najah.cap.exceptions.Util;
@@ -16,8 +17,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class DataInserter {
-    private final MongoDataInserter mongoDataInserter;
     private static final Logger logger = LoggerFactory.getLogger(DataInserter.class);
+    private final MongoDataInserter mongoDataInserter;
     private final UserMapper userMapper;
     private final UserActivityMapper userActivityMapper;
     private final TransactionMapper transactionMapper;
@@ -32,6 +33,7 @@ public class DataInserter {
         this.transactionMapper = transactionMapper;
         this.postMapper = postMapper;
     }
+
     public void insertData(IUserActivityService userActivityService, IPayment paymentService,
                            IUserService userService, IPostService postService) {
         Util.setSkipValidation(true);
@@ -56,6 +58,7 @@ public class DataInserter {
 
         Util.setSkipValidation(false);
     }
+
     private void insertUserActivities(IUserActivityService userActivityService, String userId) {
         try {
             List<UserActivity> userActivities = userActivityService.getUserActivity(userId);
@@ -66,6 +69,7 @@ public class DataInserter {
             logger.error("Error inserting user activities for userId: {}", userId, e);
         }
     }
+
     private void insertUserTransactions(IPayment paymentService, String userId) {
         try {
             List<Transaction> transactions = paymentService.getTransactions(userId);
@@ -76,6 +80,7 @@ public class DataInserter {
             logger.error("Error inserting user transactions for userId: {}", userId, e);
         }
     }
+
     private void insertUserPosts(IPostService postService, String userId) {
         try {
             List<Post> posts = postService.getPosts(userId);
@@ -86,6 +91,7 @@ public class DataInserter {
             logger.error("Error inserting user posts for userId: {}", userId, e);
         }
     }
+
     private void insertUserProfile(IUserService userService, String userId) {
         try {
             UserProfile userProfile = userService.getUser(userId);

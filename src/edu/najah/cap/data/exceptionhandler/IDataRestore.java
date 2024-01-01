@@ -6,6 +6,6 @@ import java.util.List;
 import java.util.Map;
 
 public interface IDataRestore {
-        void restoreUserData(String userName,  Map<String, List<Document>> userBackup );
-    }
+    void restoreUserData(String userName, Map<String, List<Document>> userBackup);
+}
 

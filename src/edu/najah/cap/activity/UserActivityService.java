@@ -4,13 +4,12 @@ import edu.najah.cap.exceptions.BadRequestException;
 import edu.najah.cap.exceptions.NotFoundException;
 import edu.najah.cap.exceptions.SystemBusyException;
 import edu.najah.cap.exceptions.Util;
-import edu.najah.cap.payment.Transaction;
 
-import java.time.Instant;
 import java.util.*;
 
 public class UserActivityService implements IUserActivityService {
     private static final Map<String, List<UserActivity>> userActivityMap = new HashMap<>();
+
     @Override
     public void addUserActivity(UserActivity userActivity) {
         userActivityMap.computeIfAbsent(userActivity.getUserId(), key -> new ArrayList<>()).add(userActivity);

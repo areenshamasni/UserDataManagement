@@ -1,14 +1,18 @@
 package edu.najah.cap.data.exportservice.exportprocess;
+
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.List;
+
 public class ActivityExporter implements IDocExporter {
     private static final Logger logger = LoggerFactory.getLogger(ActivityExporter.class);
+
     @Override
     public List<Document> exportDoc(MongoDatabase database, String userId) {
         if (userId == null || userId.trim().isEmpty()) {

@@ -7,7 +7,6 @@ import edu.najah.cap.activity.UserActivity;
 import edu.najah.cap.activity.UserActivityService;
 import edu.najah.cap.customException.SoftDeleteException;
 import edu.najah.cap.data.deleteservice.IDeleteService;
-
 import edu.najah.cap.data.deleteservice.factory.DeleteFactory;
 import edu.najah.cap.data.deleteservice.factory.DeleteType;
 import edu.najah.cap.data.exceptionhandler.IDataBackup;
@@ -166,7 +165,7 @@ public class Application {
                                 DeleteType deleteType = DeleteType.valueOf(deleteChoice);
                                 IDataBackup dataBackup = new UserDataBackup(mongoConnection.getDatabase());
                                 IDataRestore dataRestore = new UserDataRestore(database);
-                                IDeleteService deleteService = DeleteFactory.createInstance(deleteType, database,dataRestore,dataBackup);
+                                IDeleteService deleteService = DeleteFactory.createInstance(deleteType, database, dataRestore, dataBackup);
 
                                 if (deleteService != null) {
                                     long startTime = System.currentTimeMillis();
@@ -200,7 +199,6 @@ public class Application {
         }
 
         mongoConnection.closeMongoClient();
-
         //TODO Your application ends here. Do not Change the existing code
         Instant end = Instant.now();
         System.out.println("Application Ended: " + end);
