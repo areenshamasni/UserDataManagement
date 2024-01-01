@@ -7,7 +7,6 @@ import edu.najah.cap.data.exportservice.converting.IFileCompressor;
 import edu.najah.cap.data.exportservice.converting.IPdfConverter;
 import edu.najah.cap.data.exportservice.exportprocess.IDocExporter;
 import edu.najah.cap.data.exportservice.todownload.ILocalStorage;
-import edu.najah.cap.data.exportservice.toupload.GoogleDriveUploader;
 import edu.najah.cap.data.exportservice.toupload.IFileUploadStrategy;
 import edu.najah.cap.iam.UserType;
 import org.bson.Document;
@@ -22,6 +21,7 @@ import java.util.Collections;
 import java.util.List;
 
 public class FileExportContext {
+    private static final Logger logger = LoggerFactory.getLogger(FileExportContext.class);
     private final IDocExporter userProfileExporter;
     private final IDocExporter postExporter;
     private final IDocExporter activityExporter;
@@ -30,7 +30,6 @@ public class FileExportContext {
     private final IFileCompressor fileCompressor;
     private ILocalStorage localDownload;
     private IFileUploadStrategy fileUploadStrategy;
-    private static final Logger logger = LoggerFactory.getLogger(FileExportContext.class);
 
     public FileExportContext(
             IDocExporter userProfileExporter,
@@ -113,12 +112,12 @@ public class FileExportContext {
             return fileCompressor.compressFiles(generatedPdfFiles, username + ".zip");
 
         } catch(IllegalArgumentException | FileNotFoundException | DocumentException e){
-                logger.error("Exception occurred: ", e);
-                throw new SoftDeleteException("An error occurred while processing the data: " + e.getMessage());
-            } catch(Exception e){
-                logger.error("Error during data export for user '{}': {}", username, e.getMessage());
-                throw new SoftDeleteException("Unexpected error during data export: " + e.getMessage());
-            }
+            logger.error("Exception occurred: ", e);
+            throw new SoftDeleteException("An error occurred while processing the data: " + e.getMessage());
+        } catch(Exception e){
+            logger.error("Error during data export for user '{}': {}", username, e.getMessage());
+            throw new SoftDeleteException("Unexpected error during data export: " + e.getMessage());
+        }
     }
     private boolean isSoftDeleted(Document userProfile) {
         return userProfile.getString("firstName") == null && userProfile.getString("lastName") == null;

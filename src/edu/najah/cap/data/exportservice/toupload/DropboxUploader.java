@@ -4,16 +4,11 @@ import com.dropbox.core.DbxException;
 import com.dropbox.core.DbxRequestConfig;
 import com.dropbox.core.v2.DbxClientV2;
 import com.dropbox.core.v2.files.FileMetadata;
-import com.dropbox.core.v2.files.ListFolderResult;
-import com.dropbox.core.v2.files.Metadata;
 import com.dropbox.core.v2.files.WriteMode;
 import com.dropbox.core.v2.sharing.SharedFolderMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.dropbox.core.v2.DbxClientV2;
-import com.dropbox.core.v2.files.Metadata;
 import com.dropbox.core.v2.sharing.ListFoldersResult;
-import com.dropbox.core.v2.sharing.SharedFolderMetadata;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -54,10 +49,7 @@ public class DropboxUploader implements IFileUploadStrategy {
             for (SharedFolderMetadata folderMetadata : listFoldersResult.getEntries()) {
                 logger.info("Shared Folder Details - Path: {}, ID: {}", folderMetadata.getPathDisplay(), folderMetadata.getSharedFolderId());
 
-                // Construct the path based on the information obtained during listing
                 String constructedPath = folderMetadata.getPathDisplay() + "/UserData";
-
-                // Extract the base path without query parameters from the shared link
                 String sharedLinkBasePath = sharedLinkPath.split("\\?")[0];
 
                 if (constructedPath.equals(sharedLinkBasePath)) {
@@ -67,10 +59,6 @@ public class DropboxUploader implements IFileUploadStrategy {
         } catch (DbxException e) {
             logger.error("Error listing shared folders: {}", e.getMessage());
         }
-
         return null;
     }
-
-
-
 }

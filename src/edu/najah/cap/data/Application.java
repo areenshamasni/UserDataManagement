@@ -42,6 +42,7 @@ import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
@@ -78,7 +79,7 @@ public class Application {
         IDocExporter paymentExporter = new PaymentExporter();
         IPdfConverter pdfConverter = new PdfConverter();
         IFileCompressor fileCompressor = new ZipIFileCompressor();
-        ILocalStorage localDownload = new LocalDownload("C:\\Users\\Think\\Downloads");
+        ILocalStorage localDownload = new LocalDownload(System.getProperty("user.home") + File.separator + "Downloads");
         IFileUploadStrategy googleDriveUploader = new GoogleDriveUploader();
         IFileUploadStrategy dropboxUploader = new DropboxUploader();
 
@@ -180,8 +181,9 @@ public class Application {
                                     logger.error("Delete service could not be initialized.");
                                 }
                             } catch (IllegalArgumentException e) {
-                                logger.error("Invalid delete type. Please choose 'hard' or 'soft'.", e);
+                                logger.error("Invalid delete type. Please choose 'hard' or 'soft'.");
                             } catch (SystemBusyException e) {
+                                logger.error("System busy exception.");
                             }
                             break;
                         case 4:

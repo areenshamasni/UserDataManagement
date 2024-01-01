@@ -25,9 +25,9 @@ import java.util.List;
 public class GoogleDriveUploader implements IFileUploadStrategy {
 
     private static final JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
-    private static final String TOKENS_DIRECTORY_PATH = "C:\\Users\\samak\\IdeaProjects\\UserDataManagement\\src\\resources\\tokens";
+    private static final String TOKENS_DIRECTORY_PATH = "src//resources//tokens";
     private static final List<String> SCOPES = Collections.singletonList(DriveScopes.DRIVE_FILE);
-    private static final String CREDENTIALS_FILE_PATH = "C:\\Users\\samak\\IdeaProjects\\UserDataManagement\\src\\resources\\credentials.json";
+    private static final String CREDENTIALS_FILE_PATH = "src//resources//credentials.json";
 
     private static final String APPLICATION_NAME = "Google Drive API";
     private static final Logger logger = LoggerFactory.getLogger(GoogleDriveUploader.class);
