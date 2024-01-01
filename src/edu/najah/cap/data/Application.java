@@ -5,6 +5,12 @@ import com.mongodb.client.MongoDatabase;
 import edu.najah.cap.activity.IUserActivityService;
 import edu.najah.cap.activity.UserActivity;
 import edu.najah.cap.activity.UserActivityService;
+import edu.najah.cap.data.deleteservice.exceptionhandler.IDataBackup;
+import edu.najah.cap.data.deleteservice.exceptionhandler.IDataRestore;
+import edu.najah.cap.data.deleteservice.exceptionhandler.UserDataBackup;
+import edu.najah.cap.data.deleteservice.exceptionhandler.UserDataRestore;
+import edu.najah.cap.data.deleteservice.factory.DeleteFactory;
+import edu.najah.cap.data.deleteservice.factory.DeleteType;
 import edu.najah.cap.data.exportservice.FileExportContext;
 import edu.najah.cap.data.exportservice.converting.IFileCompressor;
 import edu.najah.cap.data.exportservice.converting.IPdfConverter;
@@ -32,7 +38,7 @@ import edu.najah.cap.posts.PostService;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
+import edu.najah.cap.data.deleteservice.IDeleteService;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.time.Instant;
@@ -144,33 +150,35 @@ public class Application {
                                 logger.error("Error in Uploading process, try again later.");
                             }
                             break;
-//                        case 3:
-//                            System.out.println("Choose delete type (hard/soft): ");
-//                            scanner.nextLine();
-//
-//                            String deleteChoice = scanner.nextLine().trim().toUpperCase();
-//
-//                            try {
-//                                DeleteType deleteType = DeleteType.valueOf(deleteChoice);
-//                                IDeleteService deleteService = DeleteFactory.createInstance(deleteType, mongoConnection.getDatabase());
-//
-//                                if (deleteService != null) {
-//                                    long startTime = System.currentTimeMillis();
-//                                    deleteService.deleteUserData(userName);
-//                                    logger.info("{} delete operation completed for user: {}", deleteChoice, userName);
-//                                    if (DeleteType.HARD.equals(deleteType)) {
-//                                        userExists = false;
-//                                    }
-//                                    long endTime = System.currentTimeMillis();
-//                                    long elapsedTime = endTime - startTime;
-//                                    logger.info("Deleting data process took {} milliseconds.", elapsedTime);
-//                                } else {
-//                                    logger.error("Delete service could not be initialized.");
-//                                }
-//                            } catch (IllegalArgumentException e) {
-//                                logger.error("Invalid delete type. Please choose 'hard' or 'soft'.", e);
-//                            }
-                        // break;
+                      case 3:
+                            System.out.println("Choose delete type (hard/soft): ");
+                            scanner.nextLine();
+
+                            String deleteChoice = scanner.nextLine().trim().toUpperCase();
+
+                            try {
+                                DeleteType deleteType = DeleteType.valueOf(deleteChoice);
+                                IDataBackup dataBackup = new UserDataBackup(mongoConnection.getDatabase());
+                                IDataRestore dataRestore = new UserDataRestore(database, dataBackup);
+                                IDeleteService deleteService = DeleteFactory.createInstance(deleteType, database,  dataRestore);
+
+                                if (deleteService != null) {
+                                    long startTime = System.currentTimeMillis();
+                                    deleteService.deleteUserData(userName);
+                                   // logger.info("{} delete operation completed for user: {}", deleteChoice, userName);
+                                    if (DeleteType.HARD.equals(deleteType)) {
+                                        userExists = false;
+                                    }
+                                    long endTime = System.currentTimeMillis();
+                                    long elapsedTime = endTime - startTime;
+                                    logger.info("Deleting data process took {} milliseconds.", elapsedTime);
+                                } else {
+                                    logger.error("Delete service could not be initialized.");
+                                }
+                            } catch (IllegalArgumentException e) {
+                                logger.error("Invalid delete type. Please choose 'hard' or 'soft'.", e);
+                            }
+                            break;
                         case 4:
                             logger.info("Goodbye!");
                             break;
