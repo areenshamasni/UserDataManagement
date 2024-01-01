@@ -25,6 +25,7 @@ import edu.najah.cap.data.exportservice.toupload.GoogleDriveUploader;
 import edu.najah.cap.data.exportservice.toupload.IFileUploadStrategy;
 import edu.najah.cap.data.exportservice.toupload.fileStorageType;
 import edu.najah.cap.data.mongodb.*;
+import edu.najah.cap.exceptions.SystemBusyException;
 import edu.najah.cap.exceptions.Util;
 import edu.najah.cap.iam.IUserService;
 import edu.najah.cap.iam.UserProfile;
@@ -163,8 +164,8 @@ public class Application {
                             try {
                                 DeleteType deleteType = DeleteType.valueOf(deleteChoice);
                                 IDataBackup dataBackup = new UserDataBackup(mongoConnection.getDatabase());
-                                IDataRestore dataRestore = new UserDataRestore(database, dataBackup);
-                                IDeleteService deleteService = DeleteFactory.createInstance(deleteType, database, dataRestore);
+                                IDataRestore dataRestore = new UserDataRestore(database);
+                                IDeleteService deleteService = DeleteFactory.createInstance(deleteType, database,dataRestore,dataBackup);
 
                                 if (deleteService != null) {
                                     long startTime = System.currentTimeMillis();
@@ -181,6 +182,8 @@ public class Application {
                                 }
                             } catch (IllegalArgumentException e) {
                                 logger.error("Invalid delete type. Please choose 'hard' or 'soft'.", e);
+                            } catch (SystemBusyException e) {
+
                             }
                             break;
                         case 4:
