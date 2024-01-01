@@ -5,7 +5,6 @@ import com.mongodb.client.MongoDatabase;
 import edu.najah.cap.activity.IUserActivityService;
 import edu.najah.cap.activity.UserActivity;
 import edu.najah.cap.activity.UserActivityService;
-import edu.najah.cap.customException.SoftDeleteException;
 import edu.najah.cap.data.deleteservice.IDeleteService;
 import edu.najah.cap.data.deleteservice.factory.DeleteFactory;
 import edu.najah.cap.data.deleteservice.factory.DeleteType;
@@ -58,9 +57,9 @@ public class Application {
     private static final IPostService postService = new PostService();
     private static String loginUserName;
 
-    public static void main(String[] args) throws GeneralSecurityException, IOException, SoftDeleteException {
+    public static void main(String[] args) throws GeneralSecurityException, IOException {
 
-        //generateRandomData();
+        generateRandomData();
         Instant start = Instant.now();
         System.out.println("Application Started: " + start);
         Scanner scanner = new Scanner(System.in);
@@ -100,7 +99,7 @@ public class Application {
         try {
             MongoDataInserter mongoDataInserter = new MongoDataInserter(database);
             DataInserter dataInserter = new DataInserter(mongoDataInserter, userMapper, userActivityMapper, transactionMapper, postMapper);
-            //dataInserter.insertData(userActivityService, paymentService, userService, postService);
+            dataInserter.insertData(userActivityService, paymentService, userService, postService);
         } catch (MongoException e) {
             logger.error(e.getMessage(), e);
         }

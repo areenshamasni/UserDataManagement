@@ -30,7 +30,7 @@ public class HardDelete implements IDeleteService {
         this.dataRestore = dataRestore;
         this.dataBackup = dataBackup;
 
-        this.executorService = Executors.newFixedThreadPool(10);
+        this.executorService = Executors.newFixedThreadPool(4);
     }
 
     @Override

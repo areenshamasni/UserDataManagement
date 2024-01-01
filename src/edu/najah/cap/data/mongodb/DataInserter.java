@@ -37,7 +37,7 @@ public class DataInserter {
     public void insertData(IUserActivityService userActivityService, IPayment paymentService,
                            IUserService userService, IPostService postService) {
         Util.setSkipValidation(true);
-        ExecutorService executorService = Executors.newFixedThreadPool(10);
+        ExecutorService executorService = Executors.newFixedThreadPool(4);
         for (int i = 0; i < 100; i++) {
 
             final String userId = "user" + i;
