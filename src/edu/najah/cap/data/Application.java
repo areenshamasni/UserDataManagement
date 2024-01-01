@@ -128,7 +128,7 @@ public class Application {
                             System.out.println("Choose Google Drive or Dropbox to upload?(drive/dropbox): ");
                             scanner.nextLine();
                             String storageChoice = scanner.nextLine().trim().toUpperCase();
-
+                            try {
                                 fileStorageType storageType = fileStorageType.valueOf(storageChoice);
                                 System.out.println(storageType);
                                 if (fileStorageType.DRIVE.equals(storageType)) {
@@ -138,7 +138,11 @@ public class Application {
                                     FileExportContext exportContextWithDropbox = new FileExportContext(userProfExporter, postExporter, activityExporter, paymentExporter, pdfConverter, fileCompressor, dropboxUploader);
                                     exportContextWithDropbox.exportAndUpload(userName, database, "dropboxlink");
                                 }
-
+                            } catch (IllegalArgumentException e) {
+                                logger.warn("Invalid storage choice. Please enter 'drive' or 'dropbox'.", e);
+                            } catch (Exception e) {
+                                logger.error("Error in Uploading process, try again later.");
+                            }
                             break;
 //                        case 3:
 //                            System.out.println("Choose delete type (hard/soft): ");
