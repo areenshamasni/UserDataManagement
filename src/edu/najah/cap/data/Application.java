@@ -46,7 +46,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
-import java.security.UnrecoverableEntryException;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Properties;
@@ -197,8 +196,6 @@ public class Application {
             } while (userExists && (!validInput || choice != 4));
         } else {
             logger.warn("You are not an existing user in our system.");
-
-            mongoConnection.closeMongoClient();
         }
 
         mongoConnection.closeMongoClient();

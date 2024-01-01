@@ -13,6 +13,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
+//this class does not work correctly , the issue in the shared folder relation with the used API
 public class DropboxUploader implements IFileUploadStrategy {
     private static final Logger logger = LoggerFactory.getLogger(DropboxUploader.class);
     private static final String ACCESS_TOKEN = "sl.Bs0OuJuE8vlhAKE4L1b_REa2JklvJLe4WwDJ_YOkkZsvmtQ0igSHSkZjXWIWgwWUw_-PQSWeJEvmRbzAT33DggBWaEZMBQUCat3H6XThsg3ZCQe6zauJrgtVhKBs_t0Bf3eITgKcRf1iU2-vOs9PmBM";
