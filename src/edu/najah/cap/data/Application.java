@@ -127,7 +127,6 @@ public class Application {
                     logger.warn("Invalid input. Please enter a valid integer.");
                     validInput = false;
                 }
-
                 if (validInput) {
                     switch (choice) {
                         case 1:
@@ -171,7 +170,6 @@ public class Application {
                                 if (deleteService != null) {
                                     long startTime = System.currentTimeMillis();
                                     deleteService.deleteUserData(userName);
-                                    // logger.info("{} delete operation completed for user: {}", deleteChoice, userName);
                                     if (DeleteType.HARD.equals(deleteType)) {
                                         userExists = false;
                                     }
@@ -184,7 +182,7 @@ public class Application {
                             } catch (IllegalArgumentException e) {
                                 logger.error("Invalid delete type. Please choose 'hard' or 'soft'.", e);
                             } catch (SystemBusyException e) {
-
+                                
                             }
                             break;
                         case 4:

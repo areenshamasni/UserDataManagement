@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -129,7 +130,7 @@ public class FileExportContext {
         localDownload.downloadFile(zipFile.getAbsolutePath());
     }
 
-    public void exportAndUpload(String username, MongoDatabase database, String outputPath) throws SoftDeleteException {
+    public void exportAndUpload(String username, MongoDatabase database, String outputPath) throws SoftDeleteException, IOException {
         logger.info("Exporting and uploading data for username: {}", username);
         File zipFile = processData(username, database);
         fileUploadStrategy.uploadFile(zipFile.getAbsolutePath(), outputPath);

@@ -1,5 +1,4 @@
 package edu.najah.cap.data.deleteservice;
-
 import com.mongodb.MongoException;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
@@ -13,19 +12,16 @@ import edu.najah.cap.exceptions.Util;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-
 public class SoftDelete implements IDeleteService {
     private static final Logger logger = LoggerFactory.getLogger(SoftDelete.class);
     private final MongoDatabase database;
     private final IDataRestore dataRestore;
     private final IDataBackup dataBackup;
     private final ExecutorService executorService;
-
     public SoftDelete(MongoDatabase database, IDataRestore dataRestore, IDataBackup dataBackup) {
         this.database = database;
         this.dataRestore = dataRestore;
@@ -33,7 +29,6 @@ public class SoftDelete implements IDeleteService {
 
         this.executorService = Executors.newFixedThreadPool(10);
     }
-
     @Override
     public void deleteUserData(String userName) throws SystemBusyException {
         logger.info("Performing soft delete for user: {}", userName);
@@ -69,7 +64,6 @@ public class SoftDelete implements IDeleteService {
             dataRestore.restoreUserData(userName, userBackup);
         }
     }
-
     private void softDeleteUser(String userName, MongoCollection<Document> usersCollection) {
         try {
             Document updates = new Document();
