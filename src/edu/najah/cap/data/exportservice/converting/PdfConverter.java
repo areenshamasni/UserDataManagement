@@ -20,7 +20,6 @@ public class PdfConverter implements IPdfConverter {
         HIDDEN_FIELDS.add("_id");
         HIDDEN_FIELDS.add("firstName");
         HIDDEN_FIELDS.add("lastName");
-        HIDDEN_FIELDS.add("email");
         HIDDEN_FIELDS.add("password");
         HIDDEN_FIELDS.add("phoneNumber");
     }
@@ -40,10 +39,8 @@ public class PdfConverter implements IPdfConverter {
             StringBuilder stringBuilder = new StringBuilder();
             for (Map.Entry<String, Object> entry : bsonDoc.entrySet()) {
                 String key = entry.getKey();
-                if (!HIDDEN_FIELDS.contains(key)) {
-                    Object value = entry.getValue();
-                    stringBuilder.append(key).append(": ").append(value.toString()).append("\n");
-                }
+                Object value = HIDDEN_FIELDS.contains(key) ? "*****" : entry.getValue();
+                stringBuilder.append(key).append(": ").append(value.toString()).append("\n");
             }
             pdfDocument.add(new Paragraph(stringBuilder.toString()));
             pdfDocument.add(new Paragraph("\n"));

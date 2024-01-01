@@ -5,6 +5,8 @@ import com.mongodb.client.MongoDatabase;
 import edu.najah.cap.activity.IUserActivityService;
 import edu.najah.cap.activity.UserActivity;
 import edu.najah.cap.activity.UserActivityService;
+import edu.najah.cap.customException.SoftDeleteException;
+import edu.najah.cap.data.deleteservice.IDeleteService;
 import edu.najah.cap.data.deleteservice.exceptionhandler.IDataBackup;
 import edu.najah.cap.data.deleteservice.exceptionhandler.IDataRestore;
 import edu.najah.cap.data.deleteservice.exceptionhandler.UserDataBackup;
@@ -38,9 +40,10 @@ import edu.najah.cap.posts.PostService;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import edu.najah.cap.data.deleteservice.IDeleteService;
+
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Properties;
@@ -54,7 +57,7 @@ public class Application {
     private static final IPostService postService = new PostService();
     private static String loginUserName;
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws GeneralSecurityException, IOException, SoftDeleteException {
 
         //generateRandomData();
         Instant start = Instant.now();
@@ -134,9 +137,13 @@ public class Application {
                             System.out.println("Choose Google Drive or Dropbox to upload?(drive/dropbox): ");
                             scanner.nextLine();
                             String storageChoice = scanner.nextLine().trim().toUpperCase();
+                            fileStorageType storageType = null;
                             try {
-                                fileStorageType storageType = fileStorageType.valueOf(storageChoice);
-                                System.out.println(storageType);
+                                storageType = fileStorageType.valueOf(storageChoice);
+                            } catch (IllegalArgumentException e) {
+                                logger.warn("Invalid storage choice. Please enter 'drive' or 'dropbox'.");
+                            }
+                            try {
                                 if (fileStorageType.DRIVE.equals(storageType)) {
                                     FileExportContext exportContextWithGoogleDrive = new FileExportContext(userProfExporter, postExporter, activityExporter, paymentExporter, pdfConverter, fileCompressor, googleDriveUploader);
                                     exportContextWithGoogleDrive.exportAndUpload(userName, database, "1KJmz8EXglrnxRSkZq4deNdQhRKfKScv8");
@@ -144,13 +151,11 @@ public class Application {
                                     FileExportContext exportContextWithDropbox = new FileExportContext(userProfExporter, postExporter, activityExporter, paymentExporter, pdfConverter, fileCompressor, dropboxUploader);
                                     exportContextWithDropbox.exportAndUpload(userName, database, "dropboxlink");
                                 }
-                            } catch (IllegalArgumentException e) {
-                                logger.warn("Invalid storage choice. Please enter 'drive' or 'dropbox'.", e);
                             } catch (Exception e) {
                                 logger.error("Error in Uploading process, try again later.");
                             }
                             break;
-                      case 3:
+                        case 3:
                             System.out.println("Choose delete type (hard/soft): ");
                             scanner.nextLine();
 
@@ -160,12 +165,12 @@ public class Application {
                                 DeleteType deleteType = DeleteType.valueOf(deleteChoice);
                                 IDataBackup dataBackup = new UserDataBackup(mongoConnection.getDatabase());
                                 IDataRestore dataRestore = new UserDataRestore(database, dataBackup);
-                                IDeleteService deleteService = DeleteFactory.createInstance(deleteType, database,  dataRestore);
+                                IDeleteService deleteService = DeleteFactory.createInstance(deleteType, database, dataRestore);
 
                                 if (deleteService != null) {
                                     long startTime = System.currentTimeMillis();
                                     deleteService.deleteUserData(userName);
-                                   // logger.info("{} delete operation completed for user: {}", deleteChoice, userName);
+                                    // logger.info("{} delete operation completed for user: {}", deleteChoice, userName);
                                     if (DeleteType.HARD.equals(deleteType)) {
                                         userExists = false;
                                     }
