@@ -134,9 +134,12 @@ public class Application {
                             System.out.println("Choose Google Drive or Dropbox to upload?(drive/dropbox): ");
                             scanner.nextLine();
                             String storageChoice = scanner.nextLine().trim().toUpperCase();
+                            fileStorageType storageType = null;
                             try {
-                                fileStorageType storageType = fileStorageType.valueOf(storageChoice);
-                                System.out.println(storageType);
+                                storageType = fileStorageType.valueOf(storageChoice);
+                            } catch (IllegalArgumentException e) {
+                                logger.warn("Invalid storage choice. Please enter 'drive' or 'dropbox'.", e);
+                            } try {
                                 if (fileStorageType.DRIVE.equals(storageType)) {
                                     FileExportContext exportContextWithGoogleDrive = new FileExportContext(userProfExporter, postExporter, activityExporter, paymentExporter, pdfConverter, fileCompressor, googleDriveUploader);
                                     exportContextWithGoogleDrive.exportAndUpload(userName, database, "1KJmz8EXglrnxRSkZq4deNdQhRKfKScv8");
@@ -144,8 +147,6 @@ public class Application {
                                     FileExportContext exportContextWithDropbox = new FileExportContext(userProfExporter, postExporter, activityExporter, paymentExporter, pdfConverter, fileCompressor, dropboxUploader);
                                     exportContextWithDropbox.exportAndUpload(userName, database, "dropboxlink");
                                 }
-                            } catch (IllegalArgumentException e) {
-                                logger.warn("Invalid storage choice. Please enter 'drive' or 'dropbox'.", e);
                             } catch (Exception e) {
                                 logger.error("Error in Uploading process, try again later.");
                             }
