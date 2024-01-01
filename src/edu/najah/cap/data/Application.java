@@ -5,6 +5,7 @@ import com.mongodb.client.MongoDatabase;
 import edu.najah.cap.activity.IUserActivityService;
 import edu.najah.cap.activity.UserActivity;
 import edu.najah.cap.activity.UserActivityService;
+import edu.najah.cap.customException.SoftDeleteException;
 import edu.najah.cap.data.deleteservice.IDeleteService;
 import edu.najah.cap.data.deleteservice.exceptionhandler.IDataBackup;
 import edu.najah.cap.data.deleteservice.exceptionhandler.IDataRestore;
@@ -57,7 +58,7 @@ public class Application {
     private static final IPostService postService = new PostService();
     private static String loginUserName;
 
-    public static void main(String[] args) throws GeneralSecurityException, IOException {
+    public static void main(String[] args) throws GeneralSecurityException, IOException, SoftDeleteException {
 
         //generateRandomData();
         Instant start = Instant.now();
