@@ -1,4 +1,4 @@
-package edu.najah.cap.data.deleteservice.exceptionhandler;
+package edu.najah.cap.data.exceptionhandler;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import org.bson.Document;

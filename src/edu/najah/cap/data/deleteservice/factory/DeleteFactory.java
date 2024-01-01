@@ -3,8 +3,8 @@ import com.mongodb.client.MongoDatabase;
 import edu.najah.cap.data.deleteservice.HardDelete;
 import edu.najah.cap.data.deleteservice.IDeleteService;
 import edu.najah.cap.data.deleteservice.SoftDelete;
-import edu.najah.cap.data.deleteservice.exceptionhandler.IDataBackup;
-import edu.najah.cap.data.deleteservice.exceptionhandler.IDataRestore;
+import edu.najah.cap.data.exceptionhandler.IDataBackup;
+import edu.najah.cap.data.exceptionhandler.IDataRestore;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
