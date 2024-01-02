@@ -38,7 +38,7 @@ The code for exporting user data doesn't explicitly follow a design pattern but 
 ### Upload to File Storage and Download Directly
 The code for file upload and download utilizes the strategy design pattern. It defines an interface for file upload strategies and provides two implementations. Each implementation class has a single responsibility, and the code is open for extension to support additional file storage types or upload techniques without modifying existing code. Logging is implemented to ensure accountability and aid in problem tracking and application monitoring.
 
-### Mongo 
+### MongoDB
 The code for MongoDB processing employs the singleton design pattern to ensure a single instance of the `MongoConnection` class for managing the MongoDB connection. `DataInserter` utilizes an ExecutorService with a fixed thread pool of 4 threads to concurrently insert data for multiple users. This improves performance by parallelize the insertion process. Each class has a single responsibility, adhering to SOLID principles. Logging is used to record MongoDB operations, handle exceptions, and aid in debugging, monitoring, and accountability.
 
 ## Conclusion
