@@ -3,8 +3,7 @@
 ## Project Description
 The objective of this project is to develop a new backend feature Named "user data" this feature empowers users to manage and access information collected about themselves. Users can export their data and delete it from the system.
 
-## [The class diagram ](https://lucid.app/lucidchart/0473112a-2473-432b-89c6-30ff3f2db69a/edit?viewport_loc=-2143%2C-1365%2C7768%2C3251%2CHWEp-vi-RSFO&invitationId=inv_be34bf7c-ec46-4db6-a8e7-0b07101d51e2)
-## [The concrete architecture ](https://lucid.app/lucidchart/c2ded94b-15e5-4247-b190-63e51d8700ec/edit?viewport_loc=2043%2C-1921%2C8166%2C2855%2C0_0&invitationId=inv_5583f1b5-400d-46d8-8332-ef93df744ab1)
+## [The Class diagram ](https://lucid.app/lucidchart/0473112a-2473-432b-89c6-30ff3f2db69a/edit?viewport_loc=-2143%2C-1365%2C7768%2C3251%2CHWEp-vi-RSFO&invitationId=inv_be34bf7c-ec46-4db6-a8e7-0b07101d51e2) , [The Concrete architecture ](https://lucid.app/lucidchart/c2ded94b-15e5-4247-b190-63e51d8700ec/edit?viewport_loc=2043%2C-1921%2C8166%2C2855%2C0_0&invitationId=inv_5583f1b5-400d-46d8-8332-ef93df744ab1) ,  [The Report ](https://docs.google.com/document/d/1y7KK2PUVonjY5515e0uE8kI9WHnO2bQy1oip2dOvHkg/edit?usp=sharing)
 
 ## Code Structure Overview
 The generated code encompasses several files and classes. Below is a brief overview of each new interface and its purpose:
