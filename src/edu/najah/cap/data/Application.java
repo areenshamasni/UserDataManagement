@@ -102,6 +102,8 @@ public class Application {
             dataInserter.insertData(userActivityService, paymentService, userService, postService);
         } catch (MongoException e) {
             logger.error(e.getMessage(), e);
+        } catch (InterruptedException e) {
+            logger.warn("we have small intrupt problem ...we will solve it dont worry ");
         }
 
         Document query = new Document("userId", userName);
