@@ -42,15 +42,17 @@ public class DataInserter {
 
             final String userId = "user" + i;
 
-            executorService.execute(() -> insertUserActivities(userActivityService, userId));
-            executorService.execute(() -> insertUserTransactions(paymentService, userId));
-            executorService.execute(() -> insertUserPosts(postService, userId));
-            executorService.execute(() -> insertUserProfile(userService, userId));
+            executorService.submit(() -> insertUserActivities(userActivityService, userId));
+            executorService.submit(() -> insertUserTransactions(paymentService, userId));
+            executorService.submit(() -> insertUserPosts(postService, userId));
+            executorService.submit(() -> insertUserProfile(userService, userId));
 
         }
         executorService.shutdown();
         try {
-            executorService.awaitTermination(Long.MAX_VALUE, java.util.concurrent.TimeUnit.NANOSECONDS);
+            while (!executorService.isTerminated()) {
+                Thread.sleep(100);
+            }
         } catch (InterruptedException e) {
             logger.error("Thread interrupted during insertData", e);
             Thread.currentThread().interrupt();
