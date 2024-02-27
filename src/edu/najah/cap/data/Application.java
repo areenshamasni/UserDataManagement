@@ -1,8 +1,31 @@
 package edu.najah.cap.data;
 
+import com.mongodb.MongoException;
+import com.mongodb.client.MongoDatabase;
 import edu.najah.cap.activity.IUserActivityService;
 import edu.najah.cap.activity.UserActivity;
 import edu.najah.cap.activity.UserActivityService;
+import edu.najah.cap.data.deleteservice.IDeleteService;
+import edu.najah.cap.data.deleteservice.factory.DeleteFactory;
+import edu.najah.cap.data.deleteservice.factory.DeleteType;
+import edu.najah.cap.data.exceptionhandler.IDataBackup;
+import edu.najah.cap.data.exceptionhandler.IDataRestore;
+import edu.najah.cap.data.exceptionhandler.UserDataBackup;
+import edu.najah.cap.data.exceptionhandler.UserDataRestore;
+import edu.najah.cap.data.exportservice.FileExportContext;
+import edu.najah.cap.data.exportservice.converting.IFileCompressor;
+import edu.najah.cap.data.exportservice.converting.IPdfConverter;
+import edu.najah.cap.data.exportservice.converting.PdfConverter;
+import edu.najah.cap.data.exportservice.converting.ZipIFileCompressor;
+import edu.najah.cap.data.exportservice.exportprocess.*;
+import edu.najah.cap.data.exportservice.todownload.ILocalStorage;
+import edu.najah.cap.data.exportservice.todownload.LocalDownload;
+import edu.najah.cap.data.exportservice.toupload.DropboxUploader;
+import edu.najah.cap.data.exportservice.toupload.GoogleDriveUploader;
+import edu.najah.cap.data.exportservice.toupload.IFileUploadStrategy;
+import edu.najah.cap.data.exportservice.toupload.fileStorageType;
+import edu.najah.cap.data.mongodb.*;
+import edu.najah.cap.exceptions.SystemBusyException;
 import edu.najah.cap.exceptions.Util;
 import edu.najah.cap.iam.IUserService;
 import edu.najah.cap.iam.UserProfile;
@@ -14,21 +37,28 @@ import edu.najah.cap.payment.Transaction;
 import edu.najah.cap.posts.IPostService;
 import edu.najah.cap.posts.Post;
 import edu.najah.cap.posts.PostService;
+import org.bson.Document;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.time.Instant;
+import java.util.Arrays;
+import java.util.Properties;
 import java.util.Scanner;
-import java.util.concurrent.ExecutorService;
 
 public class Application {
-
     private static final IUserActivityService userActivityService = new UserActivityService();
     private static final IPayment paymentService = new PaymentService();
     private static final IUserService userService = new UserService();
     private static final IPostService postService = new PostService();
-
     private static String loginUserName;
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws GeneralSecurityException, IOException {
+
         generateRandomData();
         Instant start = Instant.now();
         System.out.println("Application Started: " + start);
@@ -39,15 +69,142 @@ public class Application {
         setLoginUserName(userName);
         //TODO Your application starts here. Do not Change the existing code
 
+        Logger logger = LoggerFactory.getLogger(Application.class);
 
+        IDocExporter userProfExporter = new UserProfExporter();
+        IDocExporter postExporter = new PostExporter();
+        IDocExporter activityExporter = new ActivityExporter();
+        IDocExporter paymentExporter = new PaymentExporter();
+        IPdfConverter pdfConverter = new PdfConverter();
+        IFileCompressor fileCompressor = new ZipIFileCompressor();
+        ILocalStorage localDownload = new LocalDownload(System.getProperty("user.home") + File.separator + "Downloads");
+        IFileUploadStrategy googleDriveUploader = new GoogleDriveUploader();
+        IFileUploadStrategy dropboxUploader = new DropboxUploader();
 
+        UserActivityMapper userActivityMapper = new UserActivityMapper();
+        TransactionMapper transactionMapper = new TransactionMapper();
+        PostMapper postMapper = new PostMapper();
+        UserMapper userMapper = new UserMapper();
 
+        Properties properties = new Properties();
+        try (FileInputStream input = new FileInputStream("src/resources/application.properties")) {
+            properties.load(input);
+        } catch (IOException e) {
+            logger.info("Error loading properties");
+        }
+        String connectionString = properties.getProperty("mongo.connection.string");
+        MongoConnection mongoConnection = MongoConnection.getInstance(connectionString, "UserData");
+        MongoDatabase database = mongoConnection.getDatabase();
 
+        try {
+            MongoDataInserter mongoDataInserter = new MongoDataInserter(database);
+            DataInserter dataInserter = new DataInserter(mongoDataInserter, userMapper, userActivityMapper, transactionMapper, postMapper);
+            dataInserter.insertData(userActivityService, paymentService, userService, postService);
+        } catch (MongoException e) {
+            logger.error(e.getMessage(), e);
+        } catch (InterruptedException e) {
+            logger.warn("we have small intrupt problem ...we will solve it dont worry ");
+        }
+
+        Document query = new Document("userId", userName);
+        boolean userExists = mongoConnection.getDatabase().getCollection("users").find(query).limit(1).iterator().hasNext();
+        if (userExists) {
+            boolean validInput;
+            int choice = 0;
+
+            do {
+                System.out.println("--------------------------------------------------------------------------------");
+                System.out.println("Hi, " + userName + ", what's your request?");
+                for (String s : Arrays.asList("1: Export data & download it directly", "2: Export data & upload to file storage", "3: Delete request", "4: Exit")) {
+                    System.out.println(s);
+                }
+                System.out.print("Your choice: ");
+
+                try {
+                    choice = scanner.nextInt();
+                    validInput = true;
+                } catch (java.util.InputMismatchException e) {
+                    scanner.nextLine();
+                    logger.warn("Invalid input. Please enter a valid integer.");
+                    validInput = false;
+                }
+                if (validInput) {
+                    switch (choice) {
+                        case 1:
+                            FileExportContext exportContextWithDownload = new FileExportContext(userProfExporter, postExporter, activityExporter, paymentExporter, pdfConverter, fileCompressor, localDownload);
+                            exportContextWithDownload.exportAndDownload(userName, database);
+                            break;
+                        case 2:
+                            System.out.println("Choose Google Drive or Dropbox to upload?(drive/dropbox): ");
+                            scanner.nextLine();
+                            String storageChoice = scanner.nextLine().trim().toUpperCase();
+                            fileStorageType storageType = null;
+                            try {
+                                storageType = fileStorageType.valueOf(storageChoice);
+                            } catch (IllegalArgumentException e) {
+                                logger.warn("Invalid storage choice. Please enter 'drive' or 'dropbox'.");
+                            }
+                            try {
+                                if (fileStorageType.DRIVE.equals(storageType)) {
+                                    FileExportContext exportContextWithGoogleDrive = new FileExportContext(userProfExporter, postExporter, activityExporter, paymentExporter, pdfConverter, fileCompressor, googleDriveUploader);
+                                    exportContextWithGoogleDrive.exportAndUpload(userName, database, "1KJmz8EXglrnxRSkZq4deNdQhRKfKScv8");
+                                } else if (fileStorageType.DROPBOX.equals(storageType)) {
+                                    FileExportContext exportContextWithDropbox = new FileExportContext(userProfExporter, postExporter, activityExporter, paymentExporter, pdfConverter, fileCompressor, dropboxUploader);
+                                    exportContextWithDropbox.exportAndUpload(userName, database, "https://www.dropbox.com/scl/fo/y7aj1rq465i8mkh4jjij0/h?rlkey=k8kqpstj28o3kajf6w4pcd7cv&dl=0");
+                                }
+                            } catch (Exception e) {
+                                logger.error("Error in Uploading process, try again later.");
+                            }
+                            break;
+                        case 3:
+                            System.out.println("Choose delete type (hard/soft): ");
+                            scanner.nextLine();
+
+                            String deleteChoice = scanner.nextLine().trim().toUpperCase();
+
+                            try {
+                                DeleteType deleteType = DeleteType.valueOf(deleteChoice);
+                                IDataBackup dataBackup = new UserDataBackup(mongoConnection.getDatabase());
+                                IDataRestore dataRestore = new UserDataRestore(database);
+                                IDeleteService deleteService = DeleteFactory.createInstance(deleteType, database, dataRestore, dataBackup);
+
+                                if (deleteService != null) {
+                                    long startTime = System.currentTimeMillis();
+                                    deleteService.deleteUserData(userName);
+                                    if (DeleteType.HARD.equals(deleteType)) {
+                                        userExists = false;
+                                    }
+                                    long endTime = System.currentTimeMillis();
+                                    long elapsedTime = endTime - startTime;
+                                    logger.info("Deleting data process took {} milliseconds.", elapsedTime);
+                                } else {
+                                    logger.error("Delete service could not be initialized.");
+                                }
+                            } catch (IllegalArgumentException e) {
+                                logger.error("Invalid delete type. Please choose 'hard' or 'soft'.");
+                            } catch (SystemBusyException e) {
+                                logger.error("System busy exception.");
+                            }
+                            break;
+                        case 4:
+                            logger.info("Goodbye!");
+                            break;
+                        default:
+                            logger.warn("Invalid choice. Please enter a valid option.");
+                    }
+                }
+
+            } while (userExists && (!validInput || choice != 4));
+        } else {
+            logger.warn("You are not an existing user in our system.");
+        }
+
+        mongoConnection.closeMongoClient();
         //TODO Your application ends here. Do not Change the existing code
         Instant end = Instant.now();
         System.out.println("Application Ended: " + end);
-    }
 
+    }
 
     private static void generateRandomData() {
         Util.setSkipValidation(true);
@@ -65,7 +222,7 @@ public class Application {
     private static void generateActivity(int i) {
         for (int j = 0; j < 100; j++) {
             try {
-                if(UserType.NEW_USER.equals(userService.getUser("user" + i).getUserType())) {
+                if (UserType.NEW_USER.equals(userService.getUser("user" + i).getUserType())) {
                     continue;
                 }
             } catch (Exception e) {
@@ -82,7 +239,7 @@ public class Application {
                     paymentService.pay(new Transaction("user" + i, i * j, "description" + i + "." + j));
                 }
             } catch (Exception e) {
-                System.err.println("Error while generating post for user" + i);
+                System.err.println("Error while generating payment for user" + i);
             }
         }
     }
@@ -94,6 +251,7 @@ public class Application {
     }
 
     private static void generateUser(int i) {
+
         UserProfile user = new UserProfile();
         user.setUserName("user" + i);
         user.setFirstName("first" + i);

@@ -3,9 +3,11 @@ package edu.najah.cap.exceptions;
 import java.time.Instant;
 
 public class Util {
+    private static boolean skipValidation = false;
+
     private Util() {
     }
-    private static boolean skipValidation = false;
+
     public static void validateUserName(String userName) throws SystemBusyException, BadRequestException {
         if (skipValidation) {
             return;
@@ -24,6 +26,7 @@ public class Util {
         }
 
     }
+
     public static void setSkipValidation(boolean skipValidation) {
         Util.skipValidation = skipValidation;
     }
